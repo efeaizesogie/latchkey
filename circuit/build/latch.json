@@ -1,0 +1,73 @@
+{
+  "name": "Latchkey latch",
+  "format": "TAP-02",
+  "nIn": 2,
+  "nOut": 1,
+  "nState": 1,
+  "nand": 4,
+  "latch": 1,
+  "netlist": "0x0100000800000003000003000000020000050000000400000400000007000006",
+  "sha256": "0x6ad74ccdd0d3c64130ee062d0aaa9133f164954ab85707648bda6f1b1448bc6c",
+  "pins": {
+    "inputs": [
+      "expired",
+      "alive"
+    ],
+    "state": [
+      "q"
+    ],
+    "outputs": [
+      "q_next"
+    ]
+  },
+  "truthTable": [
+    {
+      "q": 0,
+      "expired": 0,
+      "alive": 0,
+      "next": 0
+    },
+    {
+      "q": 0,
+      "expired": 0,
+      "alive": 1,
+      "next": 0
+    },
+    {
+      "q": 0,
+      "expired": 1,
+      "alive": 0,
+      "next": 1
+    },
+    {
+      "q": 0,
+      "expired": 1,
+      "alive": 1,
+      "next": 0
+    },
+    {
+      "q": 1,
+      "expired": 0,
+      "alive": 0,
+      "next": 1
+    },
+    {
+      "q": 1,
+      "expired": 0,
+      "alive": 1,
+      "next": 1
+    },
+    {
+      "q": 1,
+      "expired": 1,
+      "alive": 0,
+      "next": 1
+    },
+    {
+      "q": 1,
+      "expired": 1,
+      "alive": 1,
+      "next": 1
+    }
+  ]
+}
