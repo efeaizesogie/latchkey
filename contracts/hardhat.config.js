@@ -18,6 +18,7 @@ module.exports = {
       hardfork: "cancun",
       chains: { 196: { hardforkHistory: { berlin: 0, london: 0, merge: 0, shanghai: 0, cancun: 0 } } },
     },
+    localhost: { url: "http://127.0.0.1:8545", timeout: 600000 },
     xlayer: {
       url: XLAYER_RPC,
       chainId: 196,

@@ -1,0 +1,176 @@
+import { signal, computed } from '@preact/signals';
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  http,
+  defineChain,
+  BaseError,
+  ContractFunctionRevertedError,
+  type Address,
+  type Hash,
+  type WalletClient,
+  type EIP1193Provider,
+} from 'viem';
+import { mnemonicToAccount } from 'viem/accounts';
+import { net, isFork } from './config';
+
+export const chain = defineChain({
+  id: net.chainId,
+  name: net.name,
+  nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
+  rpcUrls: { default: { http: [net.rpc] } },
+  blockExplorers: net.explorer ? { default: { name: 'OKLink', url: net.explorer } } : undefined,
+});
+
+export const pub = createPublicClient({ chain, transport: http(net.rpc, { retryCount: 2, timeout: 20_000 }) });
+
+// ---------------------------------------------------------------- wallets
+
+type Discovered = { id: string; name: string; icon: string; provider: EIP1193Provider };
+export const wallets = signal<Discovered[]>([]);
+export const account = signal<Address | null>(null);
+export const walletName = signal<string>('');
+let walletClient: WalletClient | null = null;
+let activeProvider: EIP1193Provider | null = null;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('eip6963:announceProvider', (e: any) => {
+    const d = e.detail;
+    if (!d?.info || !d?.provider) return;
+    if (wallets.value.some((w) => w.id === d.info.uuid)) return;
+    wallets.value = [...wallets.value, { id: d.info.uuid, name: d.info.name, icon: d.info.icon, provider: d.provider }];
+  });
+  window.dispatchEvent(new Event('eip6963:requestProvider'));
+  setTimeout(() => {
+    const eth = (window as any).okxwallet ?? (window as any).ethereum;
+    if (eth && wallets.value.length === 0) wallets.value = [{ id: 'injected', name: (window as any).okxwallet ? 'OKX Wallet' : 'Browser wallet', icon: '', provider: eth }];
+  }, 400);
+}
+
+/** Test-only keys of the local Hardhat fork (public, well known, worthless). Never used on X Layer. */
+/** Hardhat's public test mnemonic: worthless keys used only on the local fork, never on X Layer. */
+const TEST_MNEMONIC = 'test test test test test test test test test test test junk';
+export const FORK_ACTORS = isFork
+  ? ['Ada (owner)', 'Tobi (heir)', 'Stranger'].map((name, i) => ({ name, account: mnemonicToAccount(TEST_MNEMONIC, { addressIndex: i }) }))
+  : [];
+
+export function useForkActor(i: number) {
+  const a = FORK_ACTORS[i];
+  walletClient = createWalletClient({ chain, transport: http(net.rpc), account: a.account });
+  activeProvider = null;
+  account.value = a.account.address;
+  walletName.value = a.name;
+  try { sessionStorage.setItem('lk.actor', String(i)); } catch {}
+}
+
+export async function connect(w: Discovered) {
+  const accs = (await w.provider.request({ method: 'eth_requestAccounts' })) as Address[];
+  activeProvider = w.provider;
+  walletClient = createWalletClient({ chain, transport: custom(w.provider), account: accs[0] });
+  account.value = accs[0];
+  walletName.value = w.name;
+  (w.provider as any).on?.('accountsChanged', (a: Address[]) => {
+    account.value = a[0] ?? null;
+    if (a[0]) walletClient = createWalletClient({ chain, transport: custom(w.provider), account: a[0] });
+  });
+  try { localStorage.setItem('lk.wallet', w.name); } catch {}
+}
+
+export function disconnect() {
+  walletClient = null;
+  activeProvider = null;
+  account.value = null;
+  walletName.value = '';
+  try { localStorage.removeItem('lk.wallet'); sessionStorage.removeItem('lk.actor'); } catch {}
+}
+
+export const connected = computed(() => account.value !== null);
+
+async function ensureChain() {
+  if (!activeProvider) return;
+  const hex = ('0x' + net.chainId.toString(16)) as `0x${string}`;
+  const cur = (await activeProvider.request({ method: 'eth_chainId' })) as string;
+  if (parseInt(cur, 16) === net.chainId) return;
+  try {
+    await activeProvider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hex }] });
+  } catch (e: any) {
+    if (e?.code !== 4902) throw e;
+    await activeProvider.request({
+      method: 'wallet_addEthereumChain',
+      params: [{ chainId: hex, chainName: net.name, nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 }, rpcUrls: [net.rpc], blockExplorerUrls: net.explorer ? [net.explorer] : [] }],
+    });
+  }
+}
+
+export type TxStage = 'idle' | 'preparing' | 'signing' | 'pending' | 'done' | 'error';
+
+/** Simulate, sign, wait. Returns the receipt. Every write in the app goes through here. */
+export async function send(req: { address: Address; abi: any; functionName: string; args?: any[]; value?: bigint }, onStage?: (s: TxStage, hash?: Hash) => void) {
+  if (!walletClient || !account.value) throw new Error('Connect a wallet first.');
+  onStage?.('preparing');
+  await ensureChain();
+  const { request } = await pub.simulateContract({ ...req, account: account.value } as any);
+  onStage?.('signing');
+  const hash = await walletClient.writeContract({ ...(request as any), account: walletClient.account ?? account.value, chain });
+  onStage?.('pending', hash);
+  const receipt = await pub.waitForTransactionReceipt({ hash, timeout: 120_000 });
+  if (receipt.status !== 'success') throw new Error('The transaction was included but reverted.');
+  onStage?.('done', hash);
+  return receipt;
+}
+
+export async function sendValue(to: Address, value: bigint, onStage?: (s: TxStage, hash?: Hash) => void) {
+  if (!walletClient || !account.value) throw new Error('Connect a wallet first.');
+  await ensureChain();
+  onStage?.('signing');
+  const hash = await walletClient.sendTransaction({ to, value, account: walletClient.account ?? account.value, chain });
+  onStage?.('pending', hash);
+  await pub.waitForTransactionReceipt({ hash, timeout: 120_000 });
+  onStage?.('done', hash);
+  return hash;
+}
+
+const PLAIN: Record<string, string> = {
+  NotOwner: 'Only the vault owner can do that.',
+  NotHeir: 'Only the address named as receiver can claim.',
+  IsTripped: 'The latch has already tripped. It cannot be reopened.',
+  NotTripped: 'The latch is still open, so nothing can be claimed yet.',
+  NotYet: 'The owner checked in recently. The circuit keeps the latch open until the window passes.',
+  BadWindow: 'Pick a window between 1 minute and 10 years.',
+  BadAddress: 'That address can’t be used here (empty, or the same as the owner).',
+  CircuitFailed: 'The TapeOut circuit did not answer as expected. Nothing changed.',
+  SetupFee: 'The setup fee was not included.',
+};
+
+/** Turn any wallet / RPC / revert error into one plain sentence. */
+export function explain(e: unknown): string {
+  if (e instanceof BaseError) {
+    const rev = e.walk((x) => x instanceof ContractFunctionRevertedError) as ContractFunctionRevertedError | null;
+    const name = rev?.data?.errorName;
+    if (name && PLAIN[name]) return PLAIN[name];
+    const msg = e.shortMessage || e.message;
+    if (/insufficient funds|enough funds/i.test(`${msg} ${(e as any).details ?? ''}`)) return 'Not enough OKB in this wallet to pay for gas.';
+    if (/rejected|denied|User rejected/i.test(msg)) return 'You declined the request in your wallet. Nothing was sent.';
+    if (/insufficient funds/i.test(msg)) return 'Not enough OKB in this wallet to pay for gas.';
+    return msg;
+  }
+  const m = (e as any)?.message ?? String(e);
+  if (/rejected|denied/i.test(m)) return 'You declined the request in your wallet. Nothing was sent.';
+  return m;
+}
+
+export const short = (a?: string | null) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '');
+export const same = (a?: string | null, b?: string | null) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+
+/** Fork only: move the local chain's clock forward (demo rehearsal). */
+export async function forkSkip(seconds: number) {
+  if (!isFork) return;
+  await pub.request({ method: 'evm_increaseTime' as any, params: [seconds] as any });
+  await pub.request({ method: 'evm_mine' as any, params: [] as any });
+}
+
+export async function chainNow(): Promise<number> {
+  const b = await pub.getBlock({ blockTag: 'latest' });
+  return Number(b.timestamp);
+}

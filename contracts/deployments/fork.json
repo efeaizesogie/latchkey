@@ -1,0 +1,14 @@
+{
+  "network": "localhost",
+  "chainId": 31337,
+  "processor": "0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355",
+  "circuitId": "21",
+  "factory": "0x851356ae760d987E095750cCeb3bC6014560891C",
+  "implementation": "0xB955b6c65Ff69bfe07A557aa385055282b8a5eA3",
+  "treasury": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "setupFee": "1000000000000000",
+  "claimFeeBps": 20,
+  "deployedAt": "2026-11-19T01:09:58.772Z",
+  "tx": "0xccfbec4a7c52bee2ffebd46a45555dfebd4ed14ae6849481eeb4e70c94189788",
+  "token": "0xf5059a5D33d5853360D16C683c16e67980206f36"
+}

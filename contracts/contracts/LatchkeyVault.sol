@@ -43,6 +43,19 @@ contract LatchkeyVault {
     uint64 public trippedAt; // 0 while open
     uint8 public latch; // the circuit's state bit: 0 open, 1 tripped
     uint64 public beats; // how many times the circuit has been stepped for this vault
+    uint64 public createdBlock;
+
+    /// @notice Every beat of the circuit for this vault, kept on chain (public RPCs cap log queries at 100 blocks).
+    struct BeatRecord {
+        uint64 blockNumber;
+        uint64 time;
+        uint8 stateBefore;
+        uint8 expired;
+        uint8 alive;
+        uint8 stateAfter;
+    }
+
+    BeatRecord[] internal _history;
 
     uint8 private _lock;
 
@@ -109,6 +122,7 @@ contract LatchkeyVault {
         heir = heir_;
         window = window_;
         lastCheckIn = uint64(block.timestamp);
+        createdBlock = uint64(block.number);
         emit Initialized(owner_, heir_, window_);
         emit CheckedIn(lastCheckIn, deadline());
     }
@@ -126,6 +140,36 @@ contract LatchkeyVault {
 
     function expired() public view returns (bool) {
         return block.timestamp >= deadline();
+    }
+
+    /// @notice Everything a UI needs in one call.
+    function snapshot()
+        external
+        view
+        returns (
+            address owner_,
+            address heir_,
+            uint64 window_,
+            uint64 lastCheckIn_,
+            uint64 deadline_,
+            uint8 latch_,
+            uint64 trippedAt_,
+            uint64 beats_,
+            uint256 circuitId_,
+            address processor_,
+            uint256 okb
+        )
+    {
+        return (owner, heir, window, lastCheckIn, deadline(), latch, trippedAt, beats, circuitId, address(processor), address(this).balance);
+    }
+
+    /// @notice Beat records [from, from + n), clipped to the end.
+    function history(uint256 from, uint256 n) external view returns (BeatRecord[] memory out) {
+        uint256 len = _history.length;
+        if (from >= len) return out;
+        uint256 end = from + n > len ? len : from + n;
+        out = new BeatRecord[](end - from);
+        for (uint256 i = from; i < end; ++i) out[i - from] = _history[i];
     }
 
     /// @notice What the circuit would answer right now for a trip (no state change). Useful for UIs and keepers.
@@ -209,6 +253,7 @@ contract LatchkeyVault {
         unchecked {
             ++beats;
         }
+        _history.push(BeatRecord(uint64(block.number), uint64(block.timestamp), before, e, alive, next));
         emit Beat(beats, before, e, alive, next, block.number);
     }
 
