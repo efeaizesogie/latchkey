@@ -61,6 +61,8 @@ contract LatchkeyVault {
 
     uint64 public constant MIN_WINDOW = 1 minutes; // short windows exist for demos; the app offers 30+ days
     uint64 public constant MAX_WINDOW = 3650 days;
+    /// @notice If the TapeOut processor ever stops answering, the latch can still trip this long after the deadline.
+    uint64 public constant CIRCUIT_FALLBACK_DELAY = 30 days;
 
     event Initialized(address indexed owner, address indexed heir, uint64 window);
     event CheckedIn(uint64 at, uint64 deadline);
@@ -71,6 +73,7 @@ contract LatchkeyVault {
     event Withdrawn(address indexed token, address indexed to, uint256 amount);
     event Claimed(address indexed token, address indexed to, uint256 amount, uint256 fee);
     event Deposited(address indexed from, uint256 amount);
+    event CircuitUnavailable(uint64 at);
 
     error AlreadyInitialized();
     error NotOwner();
@@ -83,6 +86,7 @@ contract LatchkeyVault {
     error CircuitFailed();
     error Reentrant();
     error TransferFailed();
+    error CircuitWorks();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -202,7 +206,10 @@ contract LatchkeyVault {
     /// @notice The owner can always take funds back while the latch is open. token = address(0) for OKB.
     function withdraw(address token, uint256 amount, address to) external onlyOwner whileOpen nonReentrant {
         if (to == address(0)) revert BadAddress();
-        _alive();
+        // Never let a broken processor lock the owner out of their own money.
+        (bool ok,) = _tryStep(expired() ? 1 : 0, 1);
+        if (ok) _alive();
+        else _checkInWithoutCircuit();
         _send(token, to, amount);
         emit Withdrawn(token, to, amount);
     }
@@ -215,6 +222,18 @@ contract LatchkeyVault {
         uint8 next = _beat(e, 0);
         if (next != 1) revert NotYet(deadline());
         trippedAt = uint64(block.timestamp);
+        emit Tripped(msg.sender, trippedAt);
+    }
+
+    /// @notice Safety valve: only if the processor call fails (not if it answers 0), and only 30 days after the
+    ///         deadline, the latch trips without the circuit, so an heir is never locked out by a dead processor.
+    function tripWithoutCircuit() external whileOpen {
+        (bool ok,) = _tryStep(1, 0);
+        if (ok) revert CircuitWorks();
+        if (block.timestamp < uint256(deadline()) + CIRCUIT_FALLBACK_DELAY) revert NotYet(deadline() + CIRCUIT_FALLBACK_DELAY);
+        latch = 1;
+        trippedAt = uint64(block.timestamp);
+        emit CircuitUnavailable(trippedAt);
         emit Tripped(msg.sender, trippedAt);
     }
 
@@ -245,6 +264,12 @@ contract LatchkeyVault {
         emit CheckedIn(lastCheckIn, deadline());
     }
 
+    function _checkInWithoutCircuit() internal {
+        lastCheckIn = uint64(block.timestamp);
+        emit CircuitUnavailable(lastCheckIn);
+        emit CheckedIn(lastCheckIn, deadline());
+    }
+
     /// @dev One stored beat: the circuit's new state becomes the latch.
     function _beat(uint8 e, uint8 alive) internal returns (uint8 next) {
         uint8 before = latch;
@@ -258,7 +283,13 @@ contract LatchkeyVault {
     }
 
     /// @dev Calls processor.step(circuitId, [latch], [expired | alive << 1]) with a gas cap and checks the shape.
-    function _step(uint8 e, uint8 alive) internal view returns (uint8) {
+    function _step(uint8 e, uint8 alive) internal view returns (uint8 q) {
+        bool ok;
+        (ok, q) = _tryStep(e, alive);
+        if (!ok) revert CircuitFailed();
+    }
+
+    function _tryStep(uint8 e, uint8 alive) internal view returns (bool, uint8) {
         bytes memory state = new bytes(1);
         state[0] = bytes1(latch);
         bytes memory inputs = new bytes(1);
@@ -266,13 +297,13 @@ contract LatchkeyVault {
         (bool ok, bytes memory ret) = address(processor).staticcall{gas: 1_000_000}(
             abi.encodeCall(ITapeoutProcessor.step, (circuitId, state, inputs))
         );
-        if (!ok || ret.length < 128) revert CircuitFailed();
+        if (!ok || ret.length < 128) return (false, 0);
         (bytes memory newState, bytes memory outputs) = abi.decode(ret, (bytes, bytes));
-        if (newState.length != 1 || outputs.length != 1) revert CircuitFailed();
+        if (newState.length != 1 || outputs.length != 1) return (false, 0);
         uint8 q = uint8(newState[0]) & 1;
         // The output pin is the same signal as the latch's d input; a mismatch means a different circuit.
-        if ((uint8(outputs[0]) & 1) != q) revert CircuitFailed();
-        return q;
+        if ((uint8(outputs[0]) & 1) != q) return (false, 0);
+        return (true, q);
     }
 
     function _send(address token, address to, uint256 amount) internal {

@@ -139,6 +139,10 @@ describeFork("Latchkey on an X Layer fork (real TapeOut processor)", function ()
     expect(await ethers.provider.getBalance(await vault.getAddress())).to.equal(0n);
     await expect(vault.connect(heir).checkIn()).to.be.revertedWithCustomError(vault, "NotOwner");
     expect(await vault.beats()).to.equal(3n);
+    const h = await vault.history(0, 10);
+    expect(h.length).to.equal(3);
+    expect(h.every((r) => r.alive === 1n && r.stateAfter === 0n)).to.equal(true);
+    expect((await vault.snapshot()).heir_).to.equal(stranger.address);
   });
 
   it("a vault cannot be re-initialized and the factory refuses a wrong circuit", async function () {
@@ -149,5 +153,26 @@ describeFork("Latchkey on an X Layer fork (real TapeOut processor)", function ()
     const F = await ethers.getContractFactory("LatchkeyFactory");
     await expect(F.deploy(PROCESSOR, 15, treasury.address, 0, 20)).to.be.revertedWithCustomError(F, "BadCircuit"); // Daily Cap, combinational
     await expect(F.deploy(PROCESSOR, circuitId, treasury.address, 0, 101)).to.be.revertedWithCustomError(F, "FeeTooHigh");
+  });
+
+  it("safety valve: a dead processor never locks out the owner or the heir (runs last: it breaks the processor)", async function () {
+    await factory.createVault(heir.address, 3600, { value: ethers.parseEther("0.021") });
+    const vault = await ethers.getContractAt("LatchkeyVault", (await factory.vaultsOf(owner.address)).at(-1));
+    await time.increase(3601);
+    await expect(vault.connect(stranger).tripWithoutCircuit()).to.be.revertedWithCustomError(vault, "CircuitWorks");
+
+    await network.provider.send("hardhat_setCode", [PROCESSOR, "0x60006000fd"]); // every call reverts
+    await expect(vault.checkIn()).to.be.revertedWithCustomError(vault, "CircuitFailed");
+    await expect(vault.connect(stranger).trip()).to.be.revertedWithCustomError(vault, "CircuitFailed");
+    await vault.withdraw(ethers.ZeroAddress, ethers.parseEther("0.01"), owner.address); // owner still gets money out
+    expect(await ethers.provider.getBalance(await vault.getAddress())).to.equal(ethers.parseEther("0.01"));
+
+    await time.increase(3600 + 29 * 24 * 3600);
+    await expect(vault.connect(stranger).tripWithoutCircuit()).to.be.revertedWithCustomError(vault, "NotYet");
+    await time.increase(2 * 24 * 3600);
+    await expect(vault.connect(stranger).tripWithoutCircuit()).to.emit(vault, "CircuitUnavailable");
+    expect(await vault.latch()).to.equal(1);
+    await vault.connect(heir).claim([ethers.ZeroAddress]);
+    expect(await ethers.provider.getBalance(await vault.getAddress())).to.equal(0n);
   });
 });

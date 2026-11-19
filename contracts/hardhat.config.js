@@ -2,6 +2,14 @@ require("@nomicfoundation/hardhat-ethers");
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@nomicfoundation/hardhat-network-helpers");
 
+// Load contracts/.env (DEPLOYER_KEY, TREASURY, ...) without extra dependencies. Never commit .env.
+try {
+  for (const line of require("node:fs").readFileSync(__dirname + "/.env", "utf8").split(String.fromCharCode(10))) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  }
+} catch {}
+
 const FORK = process.env.FORK === "1";
 const XLAYER_RPC = process.env.XLAYER_RPC || "https://rpc.xlayer.tech";
 
