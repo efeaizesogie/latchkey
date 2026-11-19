@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import { Mark } from './ui';
 import { net, isFork } from './lib/config';
-import { account, wallets, connect, disconnect, short, FORK_ACTORS, useForkActor, walletName, explain } from './lib/chain';
+import { account, wallets, connect, disconnect, short, FORK_ACTORS, forkReady, useForkActor, walletName, explain } from './lib/chain';
 import { Landing } from './pages/Landing';
 import { Create } from './pages/Create';
 import { VaultPage } from './pages/Vault';
@@ -63,7 +63,7 @@ function Picker() {
 export function App() {
   const r = route.value;
   useEffect(() => {
-    if (isFork) { try { const i = sessionStorage.getItem('lk.actor'); if (i) useForkActor(Number(i)); } catch {} }
+    if (isFork) forkReady.then(() => { try { const i = sessionStorage.getItem('lk.actor'); if (i) useForkActor(Number(i)); } catch {} });
   }, []);
   let page;
   if (r.startsWith('/v/')) page = <VaultPage address={r.slice(3).split(/[/?]/)[0] as `0x${string}`} />;

@@ -12,7 +12,6 @@ import {
   type WalletClient,
   type EIP1193Provider,
 } from 'viem';
-import { mnemonicToAccount } from 'viem/accounts';
 import { net, isFork } from './config';
 
 export const chain = defineChain({
@@ -49,11 +48,18 @@ if (typeof window !== 'undefined') {
 }
 
 /** Test-only keys of the local Hardhat fork (public, well known, worthless). Never used on X Layer. */
-/** Hardhat's public test mnemonic: worthless keys used only on the local fork, never on X Layer. */
+/** Hardhat's public test mnemonic: worthless keys used only on the local fork, never on X Layer.
+ *  Loaded only in fork builds (__FORK_BUILD__), so the on-chain build carries no key code at all. */
 const TEST_MNEMONIC = 'test test test test test test test test test test test junk';
-export const FORK_ACTORS = isFork
-  ? ['Ada (owner)', 'Tobi (heir)', 'Stranger'].map((name, i) => ({ name, account: mnemonicToAccount(TEST_MNEMONIC, { addressIndex: i }) }))
-  : [];
+type Actor = { name: string; account: any };
+export const FORK_ACTORS: Actor[] = [];
+export const forkReady: Promise<void> =
+  __FORK_BUILD__ && isFork
+    ? import('viem/accounts').then(({ mnemonicToAccount }) => {
+        ['Ada (owner)', 'Tobi (heir)', 'Stranger'].forEach((name, i) => FORK_ACTORS.push({ name, account: mnemonicToAccount(TEST_MNEMONIC, { addressIndex: i }) }));
+      })
+    : Promise.resolve();
+declare const __FORK_BUILD__: boolean;
 
 export function useForkActor(i: number) {
   const a = FORK_ACTORS[i];

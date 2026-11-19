@@ -12,6 +12,7 @@ const dep = (f: string) => {
 export default defineConfig({
   plugins: [preact(), viteSingleFile()],
   define: {
+    __FORK_BUILD__: JSON.stringify(process.env.LK_ONCHAIN !== '1'),
     __XLAYER_DEPLOYMENT__: JSON.stringify(dep('xlayer.json')),
     __FORK_DEPLOYMENT__: JSON.stringify(process.env.LK_ONCHAIN === '1' ? null : dep('fork.json')),
   },

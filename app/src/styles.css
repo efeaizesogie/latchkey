@@ -3,23 +3,23 @@
   font-family: 'Archivo';
   font-style: normal;
   font-display: swap;
-  font-weight: 100 900;
-  font-stretch: 62% 125%;
-  src: url('../node_modules/@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2') format('woff2-variations');
+  font-weight: 400 600;
+  font-stretch: 112%;
+  src: url('./fonts/archivo-112.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Geist';
   font-style: normal;
   font-display: swap;
   font-weight: 100 900;
-  src: url('../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2') format('woff2-variations');
+  src: url('./fonts/geist.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Geist Mono';
   font-style: normal;
   font-display: swap;
   font-weight: 100 900;
-  src: url('../node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2') format('woff2-variations');
+  src: url('./fonts/geist-mono.woff2') format('woff2');
 }
 
 :root {

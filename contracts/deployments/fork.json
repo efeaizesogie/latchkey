@@ -10,5 +10,8 @@
   "claimFeeBps": 20,
   "deployedAt": "2026-11-19T01:09:58.772Z",
   "tx": "0xccfbec4a7c52bee2ffebd46a45555dfebd4ed14ae6849481eeb4e70c94189788",
-  "token": "0xf5059a5D33d5853360D16C683c16e67980206f36"
+  "token": "0xf5059a5D33d5853360D16C683c16e67980206f36",
+  "tapeName": "21.2.272.tape",
+  "container": "0x996B44b0e54B9c1B10b0Df5E032CEE810B3B730f",
+  "siteSha256": "0x8ef47d9f27867479d10834ca5063c44a34a46a7718a08043b54ead02964ccef1"
 }
