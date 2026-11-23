@@ -21,7 +21,7 @@ module.exports = {
   },
   networks: {
     hardhat: {
-      chainId: 31337,
+      chainId: FORK ? 196 : 31337,
       ...(FORK ? { forking: { url: XLAYER_RPC, ...(process.env.FORK_BLOCK ? { blockNumber: Number(process.env.FORK_BLOCK) } : {}) } } : {}),
       hardfork: "cancun",
       chains: { 196: { hardforkHistory: { berlin: 0, london: 0, merge: 0, shanghai: 0, cancun: 0 } } },

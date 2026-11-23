@@ -1,73 +1,48 @@
 {
-  "name": "Latchkey latch",
   "format": "TAP-02",
-  "nIn": 2,
-  "nOut": 1,
-  "nState": 1,
-  "nand": 4,
-  "latch": 1,
-  "netlist": "0x0100000800000003000003000000020000050000000400000400000007000006",
-  "sha256": "0x6ad74ccdd0d3c64130ee062d0aaa9133f164954ab85707648bda6f1b1448bc6c",
-  "pins": {
-    "inputs": [
-      "expired",
-      "alive"
-    ],
-    "state": [
-      "q"
-    ],
-    "outputs": [
-      "q_next"
+  "processor": "0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355",
+  "maj3": {
+    "nIn": 3,
+    "nOut": 1,
+    "nState": 0,
+    "nand": 6,
+    "latch": 0,
+    "netlist": "0x000000020000030000000200000400000003000004000000050000060000000800000800000009000007",
+    "sha256": "0x17d59dbb9e226fe8def8a2a701c4c8f91dbd87c5da80b1b29cf299f119179b68"
+  },
+  "latch": {
+    "note": "REFs MAJ3 at (0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355, #1); rebuilt with the real MAJ3 id at deploy time",
+    "nIn": 6,
+    "nOut": 2,
+    "nState": 2,
+    "nand": 18,
+    "latch": 2,
+    "ref": 1,
+    "gates": 26,
+    "netlist": "0x0100001b0100001c0257f319cf056f72f48cf1dbb670f2a3db007aa35500000000000000010301000005000006000007000000030000030000000900000900000008000008000000020000020000000d00000e0000000c00000b000000100000100000001100000f00000012000012000000040000040000000a00000a000000140000150000000b0000080000001700001700000018000016000000130000130000001a00001a0000000c000019",
+    "sha256": "0x5ac327410c29d4af127a064d9843ef631b679e4c0572c16d827cacbc19cf64f3",
+    "pins": {
+      "inputs": [
+        "expired",
+        "alive",
+        "graceOver",
+        "g0",
+        "g1",
+        "g2"
+      ],
+      "state": [
+        "warn",
+        "q"
+      ],
+      "outputs": [
+        "warn_next",
+        "q_next"
+      ]
+    },
+    "equations": [
+      "warn' = NOT q AND NOT alive AND (warn OR expired)",
+      "q' = q OR (NOT alive AND warn AND (graceOver OR MAJ3(g0,g1,g2)))"
     ]
   },
-  "truthTable": [
-    {
-      "q": 0,
-      "expired": 0,
-      "alive": 0,
-      "next": 0
-    },
-    {
-      "q": 0,
-      "expired": 0,
-      "alive": 1,
-      "next": 0
-    },
-    {
-      "q": 0,
-      "expired": 1,
-      "alive": 0,
-      "next": 1
-    },
-    {
-      "q": 0,
-      "expired": 1,
-      "alive": 1,
-      "next": 0
-    },
-    {
-      "q": 1,
-      "expired": 0,
-      "alive": 0,
-      "next": 1
-    },
-    {
-      "q": 1,
-      "expired": 0,
-      "alive": 1,
-      "next": 1
-    },
-    {
-      "q": 1,
-      "expired": 1,
-      "alive": 0,
-      "next": 1
-    },
-    {
-      "q": 1,
-      "expired": 1,
-      "alive": 1,
-      "next": 1
-    }
-  ]
+  "rowsChecked": 256
 }
