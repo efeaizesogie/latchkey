@@ -2,6 +2,8 @@
 
 **A vault with a latch.** Check in now and then. If you go quiet for longer than you chose, a grace period starts and you get a TapeSend message. If you still don't check in (or two of your guardians confirm you are gone), a TapeOut circuit trips the latch, and everything in the vault goes to the address you named: your own backup wallet (lost phone, lost seed) or your heir.
 
+**Try it:** https://efeaizesogie.github.io/latchkey/ (switch the header to **Testnet** for free test tokens) · code: https://github.com/efeaizesogie/latchkey
+
 Built for **X Layer TapeOut Accelerate** (Oct 16 – Dec 7, 2026). Everything in this repository was built during the event (started 2026-11-19).
 
 - **Self-custodial.** You keep your keys. While the latch is open, only you can move funds.
@@ -31,7 +33,18 @@ Built for **X Layer TapeOut Accelerate** (Oct 16 – Dec 7, 2026). Everything in
 
 ## Deployments
 
-| | X Layer mainnet (196) |
+**X Layer testnet (1952), live now:**
+
+| | Address |
+|---|---|
+| Tap02Processor (TAP-02 evaluator standing in for TapeOut) | `0xDD7Db4b4DD2b78aE6E4CB70EaFF8264df1023Ca4`: latch #2, MAJ3 #1 |
+| LatchkeyFactory | `0xe62017acdF3fad73FAAB30216906aE712f7Ebe29` |
+| TestUSD (tUSDT0 faucet) | `0x409A89585C1095666579A523e0fABF96689095c8` |
+| Verified journey | vault `0x3cE45a8E5F16E990aaB21eD0Cb942A626599f405`: grace, trip, heir claimed 99.8 tUSDT0 |
+
+**X Layer mainnet (196):**
+
+| | |
 |---|---|
 | Processor | OrderGuard `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355` |
 | MAJ3 circuit ID | _filled after tape-out_ (`contracts/deployments/xlayer.json`) |
