@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { isAddress, getAddress, parseEther, decodeEventLog, type Address, type Hash } from 'viem';
 import { account, send, explain, same, short, type TxStage } from '../lib/chain';
-import { net, dep, WINDOWS, GRACES, DEMO_WINDOW, DEMO_GRACE, isFork, isTestnet, ZERO } from '../lib/config';
+import { net, dep, WINDOWS, GRACES, DEMO_WINDOW, DEMO_GRACE, isFork, isTestnet, hasHerald, ZERO } from '../lib/config';
 import { factoryAbi } from '../lib/abi';
 import { factoryInfo, fmt, windowLabel, resolveInbox } from '../lib/vault';
 import { Err, TxNote } from '../ui';
@@ -132,7 +132,7 @@ export function Create() {
             </label>
             {to && !addrOk && <p class="meta">That doesn’t look like an X Layer address (0x followed by 40 characters).</p>}
             {selfAddr && <p class="err">That’s the wallet you’re connected with. Pick a different one, or the vault can never open for anyone else.</p>}
-            <InboxField label="Their TapeSend inbox" hint="If they have a TapeOut container, the vault messages it over TapeSend the moment it opens." inbox={heirInbox} />
+            {hasHerald && <InboxField label="Their TapeSend inbox" hint="If they have a TapeOut container, the vault messages it over TapeSend the moment it opens." inbox={heirInbox} />}
             {nav(() => setStep(1), !addrOk || selfAddr || heirInbox.bad)}
           </div>
         )}
@@ -147,7 +147,7 @@ export function Create() {
               ))}
             </div>
             <h3>Then a grace period</h3>
-            <p class="muted">When the silence runs out, anyone can start a grace period, and you get a TapeSend message if you gave an inbox. One check-in during it cancels everything.</p>
+            <p class="muted">When the silence runs out, anyone can start a grace period{hasHerald ? ', and you get a TapeSend message if you gave an inbox' : ''}. One check-in during it cancels everything.</p>
             <div class="chips">
               {graces.map((w) => (
                 <button class="chip" aria-pressed={grace === w.seconds} onClick={() => setGrace(w.seconds)}><b>{w.label}</b><small>{w.hint}</small></button>
@@ -189,7 +189,7 @@ export function Create() {
                 If I don’t check in for <b>{label(windows, win)}</b>, a grace period of <b>{label(graces, grace)}</b> starts. If I still don’t check in{gCount >= 2 ? ', or two of my guardians confirm' : ''}, the latch trips and <b class="mono">{short(to.trim())}</b> ({who}) can claim everything in this vault.
               </p>
             </div>
-            <InboxField label="Your own TapeSend inbox" hint="Get a TapeSend message when your grace period starts." inbox={ownerInbox} />
+            {hasHerald && <InboxField label="Your own TapeSend inbox" hint="Get a TapeSend message when your grace period starts." inbox={ownerInbox} />}
             <label class="field">
               <span>Put some OKB in now (optional; you can add USDT next)</span>
               <input class={`input ${depositBad ? 'bad' : ''}`} inputMode="decimal" placeholder="0.0" value={deposit} onInput={(e) => setDeposit((e.target as HTMLInputElement).value)} />

@@ -16,6 +16,8 @@ A self-custodial vault that opens for your backup wallet or your heir if you sto
 - **Repo:** https://github.com/[user]/latchkey
 - **Demo video:** [YouTube link]
 
+- **Testnet (free, for judges):** X Layer testnet (chain 1952). Factory `0xe62017acdF3fad73FAAB30216906aE712f7Ebe29`, TAP-02 evaluator `0xDD7Db4b4DD2b78aE6E4CB70EaFF8264df1023Ca4` (latch #2, MAJ3 #1), test dollars tUSDT0 `0x409A89585C1095666579A523e0fABF96689095c8`. In the app, switch the header to **Testnet**: get test OKB from the official faucet, tap "Get 1,000 tUSDT0", and pick the 3-minute window to watch a latch trip in minutes. A live end-to-end run (create → deposit → grace → trip → heir claims 99.8 tUSDT0) is vault `0x3cE45a8E5F16E990aaB21eD0Cb942A626599f405`.
+
 ### Product / service
 
 Latchkey is a dead man's switch for crypto. You create a vault, name a receiver (your own backup wallet or your heir), and pick a silence window (30 days to a year) and a grace period. You check in with one tap. If you go quiet past your window, anyone can start the grace period, and you get a TapeSend message. One check-in cancels it. If you stay quiet until the grace period ends, or two of your up-to-three guardians confirm you are gone, the latch trips. From then on, only the receiver can claim what is inside, and they get a TapeSend message too.

@@ -1,0 +1,17 @@
+{
+  "network": "xlayerTestnet",
+  "chainId": 1952,
+  "processor": "0xDD7Db4b4DD2b78aE6E4CB70EaFF8264df1023Ca4",
+  "processorName": "Latchkey TAP-02 evaluator (testnet)",
+  "majId": "1",
+  "circuitId": "2",
+  "factory": "0xe62017acdF3fad73FAAB30216906aE712f7Ebe29",
+  "implementation": "0xdFC10F56734baDC1D8b9FFe625714a6738527cCe",
+  "herald": "0x0000000000000000000000000000000000000000",
+  "container": "0x0000000000000000000000000000000000000000",
+  "tapeName": "",
+  "token": "0x409A89585C1095666579A523e0fABF96689095c8",
+  "setupFee": "0",
+  "claimFeeBps": 20,
+  "deployedAt": "2026-11-23T12:06:22.988Z"
+}

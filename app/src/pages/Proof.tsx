@@ -159,7 +159,7 @@ export function Proof() {
 
         {latchInfo && dep && (
           <div class="card stack">
-            <h3>On X Layer</h3>
+            <h3>On {net.name}</h3>
             <dl class="kv">
               <dt>Processor</dt><dd>{explorerAddr(net.processor) ? <a class="mono" href={explorerAddr(net.processor)} target="_blank" rel="noreferrer">{short(net.processor)}</a> : <span class="mono">{short(net.processor)}</span>} ({net.processorName})</dd>
               <dt>Latch circuit</dt><dd class="mono">#{id!.toString()}</dd>

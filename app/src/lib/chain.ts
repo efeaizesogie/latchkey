@@ -27,14 +27,19 @@ export const pub = createPublicClient({ chain, transport: http(net.rpcs[0], { re
 export const pubs = net.rpcs.map((u) => createPublicClient({ chain, transport: http(u, { retryCount: 1, timeout: 15_000 }) }));
 
 export type Agreement = { nodes: number; agreed: boolean | null };
+/** Block of this browser's latest confirmed transaction: reads never go older than it (load-balanced nodes can lag). */
+let minBlock = 0n;
+export const noteTxBlock = (b: bigint) => { if (b > minBlock) minBlock = b; };
 const canon = (v: unknown) => JSON.stringify(v, (_k, x) => (typeof x === 'bigint' ? x.toString() : x));
 /**
  * Read the same contract call from every node at the same block and compare. agreed = true when all answers match,
  * false when any differ (the caller should not trust the value), null when only one node was reachable.
  */
 export async function readAgreed<T>(call: (c: typeof pub, blockNumber?: bigint) => Promise<T>): Promise<{ value: T; agreement: Agreement }> {
-  if (pubs.length < 2) return { value: await call(pub), agreement: { nodes: 1, agreed: null } };
-  const block = (await pub.getBlockNumber()) - 2n; // a block every node has
+  const head = await pub.getBlockNumber();
+  // a block every node has, but never older than our own last transaction
+  const block = head - 2n > minBlock ? head - 2n : minBlock > head ? head : minBlock;
+  if (pubs.length < 2) return { value: await call(pub, block), agreement: { nodes: 1, agreed: null } };
   const settled = await Promise.allSettled(pubs.map((c) => call(c, block)));
   const ok = settled.filter((r): r is PromiseFulfilledResult<Awaited<T>> => r.status === 'fulfilled').map((r) => r.value);
   if (!ok.length) throw (settled[0] as PromiseRejectedResult).reason;
@@ -213,6 +218,7 @@ export async function send(req: { address: Address; abi: any; functionName: stri
   onStage?.('pending', hash);
   const receipt = await pub.waitForTransactionReceipt({ hash, timeout: 120_000 });
   if (receipt.status !== 'success') throw new Error('The transaction was included but reverted.');
+  noteTxBlock(receipt.blockNumber);
   onStage?.('done', hash);
   return receipt;
 }
@@ -223,7 +229,8 @@ export async function sendValue(to: Address, value: bigint, onStage?: (s: TxStag
   onStage?.('signing');
   const hash = await guard(walletClient.sendTransaction({ to, value, account: walletClient.account ?? account.value, chain }), 'sign', 180_000);
   onStage?.('pending', hash);
-  await pub.waitForTransactionReceipt({ hash, timeout: 120_000 });
+  const rc = await pub.waitForTransactionReceipt({ hash, timeout: 120_000 });
+  noteTxBlock(rc.blockNumber);
   onStage?.('done', hash);
   return hash;
 }

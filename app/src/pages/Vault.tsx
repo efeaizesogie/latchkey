@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { parseUnits, isAddress, getAddress, type Address, type Hash } from 'viem';
 import { account, send, sendValue, explain, same, short, chainNow, forkSkip, type TxStage } from '../lib/chain';
 import { vaultAbi, erc20Abi } from '../lib/abi';
-import { net, dep, isRehearsal as isFork, isTestnet, explorerAddr, WINDOWS, GRACES, ZERO, type Token } from '../lib/config';
+import { net, dep, isRehearsal as isFork, isTestnet, hasHerald, explorerAddr, WINDOWS, GRACES, ZERO, type Token } from '../lib/config';
 import { loadVault, duration, windowLabel, fmt, heraldNotices, resolveInbox, type VaultView, type Notice } from '../lib/vault';
 import { Bit, Ring, Qr, Copy, Err, TxNote, useNow } from '../ui';
 import { picker } from '../app';
@@ -212,7 +212,7 @@ export function VaultPage({ address }: { address: Address }) {
             <dt>Owner</dt><dd class="mono">{short(v.owner)}</dd>
             <dt>Window · grace</dt><dd>{windowLabel(v.window)} · {windowLabel(v.grace)}</dd>
             <dt>Guardians</dt><dd>{v.guardians.length ? v.guardians.map(short).join(', ') : 'None'}</dd>
-            <dt>TapeSend</dt><dd>{[v.ownerInbox && 'owner', v.heirInbox && 'receiver'].filter(Boolean).join(' + ') || 'Latchkey’s public feed only'}</dd>
+            {hasHerald && <><dt>TapeSend</dt><dd>{[v.ownerInbox && 'owner', v.heirInbox && 'receiver'].filter(Boolean).join(' + ') || 'Latchkey’s public feed only'}</dd></>}
           </dl>
         </div>
 
