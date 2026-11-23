@@ -15,10 +15,10 @@ function Row({ addr }: { addr: Address }) {
         <div>
           <div class="mono">{short(addr)}</div>
           <div class="meta">
-            {!v ? 'reading…' : v.latch ? 'Tripped' : v.deadline > now ? `${duration(v.deadline - now)} left of ${windowLabel(v.window)}` : 'Window passed'}
+            {!v ? 'reading…' : v.phase === 'tripped' ? 'Tripped' : v.phase === 'grace' ? `Grace period · ${duration(Math.max(0, v.graceEndsAt - now))} left` : v.deadline > now ? `${duration(v.deadline - now)} left of ${windowLabel(v.window)}` : 'Window passed'}
           </div>
         </div>
-        {v && <Bit on={v.latch === 1} />}
+        {v && <Bit on={v.phase === 'tripped'} />}
       </a>
     </li>
   );
@@ -26,8 +26,8 @@ function Row({ addr }: { addr: Address }) {
 
 export function Mine() {
   const a = account.value;
-  const [list, setList] = useState<{ owned: Address[]; heirOf: Address[] } | null>(null);
-  useEffect(() => { if (a) myVaults(a).then(setList).catch(() => setList({ owned: [], heirOf: [] })); }, [a]);
+  const [list, setList] = useState<{ owned: Address[]; heirOf: Address[]; guardianOf: Address[] } | null>(null);
+  useEffect(() => { if (a) myVaults(a).then(setList).catch(() => setList({ owned: [], heirOf: [], guardianOf: [] })); }, [a]);
   if (!a)
     return (
       <section class="shell section"><div class="narrow stack">
@@ -48,6 +48,12 @@ export function Mine() {
           <h3>Open for you</h3>
           {!list ? <p class="meta">reading…</p> : list.heirOf.length ? <ul class="list">{list.heirOf.map((x) => <Row addr={x} />)}</ul> : <p class="muted" style={{ marginTop: '10px' }}>No vault names this address as receiver.</p>}
         </div>
+        {list && list.guardianOf.length > 0 && (
+          <div class="card">
+            <h3>You are a guardian for</h3>
+            <ul class="list">{list.guardianOf.map((x) => <Row addr={x} />)}</ul>
+          </div>
+        )}
       </div>
     </section>
   );

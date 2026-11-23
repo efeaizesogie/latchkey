@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import { Mark } from './ui';
-import { net, isFork } from './lib/config';
+import { net, isFork, dep } from './lib/config';
 import { account, wallets, connect, disconnect, short, FORK_ACTORS, forkReady, useForkActor, walletName, explain } from './lib/chain';
 import { Landing } from './pages/Landing';
 import { Create } from './pages/Create';
 import { VaultPage } from './pages/Vault';
 import { Proof } from './pages/Proof';
 import { Mine } from './pages/Mine';
+import { Stats } from './pages/Stats';
 
 export const route = signal(location.hash.slice(1) || '/');
 window.addEventListener('hashchange', () => {
@@ -70,6 +71,7 @@ export function App() {
   else if (r === '/new') page = <Create />;
   else if (r === '/proof') page = <Proof />;
   else if (r === '/mine') page = <Mine />;
+  else if (r === '/stats') page = <Stats />;
   else page = <Landing />;
   return (
     <>
@@ -85,8 +87,8 @@ export function App() {
       <main>{page}</main>
       <footer class="foot">
         <div class="shell spread" style={{ flexWrap: 'wrap' }}>
-          <span>Latchkey · self-custodial · no admin keys · {net.tapeName ? <span class="mono">{net.tapeName}</span> : 'X Layer'}</span>
-          <span class="row"><a href="#/proof">How the latch works</a><a href="#/mine">My vaults</a></span>
+          <span>Latchkey · self-custodial · no admin over funds · {dep ? <span class="mono">{dep.tapeName}</span> : 'X Layer'}</span>
+          <span class="row wrap"><a href="#/proof">How the latch works</a><a href="#/stats">On-chain stats</a><a href="#/mine">My vaults</a></span>
         </div>
       </footer>
       <Picker />

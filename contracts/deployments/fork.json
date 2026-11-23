@@ -1,17 +1,18 @@
 {
   "network": "localhost",
-  "chainId": 31337,
+  "chainId": 196,
   "processor": "0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355",
-  "circuitId": "21",
-  "factory": "0x851356ae760d987E095750cCeb3bC6014560891C",
-  "implementation": "0xB955b6c65Ff69bfe07A557aa385055282b8a5eA3",
+  "majId": "26",
+  "circuitId": "27",
+  "container": "0x6AAfdB85a8fB20d5165165dD8Cc3a50FB2722cC8",
+  "tapeName": "27.2.272.tape",
+  "herald": "0x70e0bA845a1A0F2DA3359C97E0285013525FFC49",
+  "factory": "0x99bbA657f2BbC93c02D617f8bA121cB8Fc104Acf",
+  "implementation": "0x3E69aeCb6a5abAc2D87d6707649E2fB0173ee2Da",
   "treasury": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "setupFee": "1000000000000000",
   "claimFeeBps": 20,
-  "deployedAt": "2026-11-19T01:09:58.772Z",
-  "tx": "0xccfbec4a7c52bee2ffebd46a45555dfebd4ed14ae6849481eeb4e70c94189788",
-  "token": "0xf5059a5D33d5853360D16C683c16e67980206f36",
-  "tapeName": "21.2.272.tape",
-  "container": "0x996B44b0e54B9c1B10b0Df5E032CEE810B3B730f",
-  "siteSha256": "0x8ef47d9f27867479d10834ca5063c44a34a46a7718a08043b54ead02964ccef1"
+  "deployedAt": "2026-11-23T10:57:59.672Z",
+  "tx": "0xa66d25324dfe4fe6877c9d7066629a5fd23562cc0d33a9ac2b8d86214535e3ce",
+  "token": "0x9d4454B023096f34B160D6B654540c56A1F81688"
 }

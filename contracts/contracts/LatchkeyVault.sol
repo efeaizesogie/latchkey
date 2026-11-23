@@ -118,6 +118,7 @@ contract LatchkeyVault {
     error CircuitWorks();
     error Reentrant();
     error TransferFailed();
+    error NeedMoreGas();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -430,9 +431,12 @@ contract LatchkeyVault {
         return (true, n);
     }
 
-    /// @dev Best effort: a failing herald (or TapeSend) never blocks the vault.
+    /// @dev Best effort: a failing herald (or TapeSend) never blocks the vault. But the transaction must carry enough
+    ///      gas for the herald to try: otherwise a wallet's gas estimate settles on the cheapest limit at which the
+    ///      outer call succeeds, which is the one where the herald silently runs out of gas.
     function _herald(uint8 what) internal {
         if (address(herald) == address(0)) return;
+        if (gasleft() < (HERALD_GAS * 64) / 63 + 20_000) revert NeedMoreGas();
         if (what == 1) {
             try herald.graceStarted{gas: HERALD_GAS}(owner, heir, ownerInbox, warnedAt + grace) {}
             catch {

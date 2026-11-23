@@ -90,7 +90,10 @@ describeFork("Latchkey v2 on an X Layer fork (real TapeOut processor, Opener, Ta
     // silence past the window: anyone starts the grace period, the herald tells Latchkey's own inbox (no owner inbox)
     await time.increase(90 * DAY + 1);
     const feed0 = await hub.inboxCount(endpoint(dep.container));
-    let rc = await (await vault.connect(stranger).poke()).wait();
+    // send with exactly the gas a wallet would estimate: the herald must still get its message out
+    const est = await vault.connect(stranger).poke.estimateGas();
+    let rc = await (await vault.connect(stranger).poke({ gasLimit: est })).wait();
+    expect(rc.logs.some((l) => { try { return vault.interface.parseLog(l)?.name === "HeraldFailed"; } catch { return false; } })).to.equal(false);
     expect(await vault.state()).to.equal(1);
     let msgs = sentMessages(rc, hub);
     expect(msgs.length).to.equal(1);
@@ -116,7 +119,7 @@ describeFork("Latchkey v2 on an X Layer fork (real TapeOut processor, Opener, Ta
     await expect(vault.connect(stranger).poke()).to.be.revertedWithCustomError(vault, "NothingToDo");
     await vault.connect(g3).confirm();
     const heirFeed0 = await hub.inboxCount(endpoint(heirInbox));
-    rc = await (await vault.connect(stranger).poke()).wait();
+    rc = await (await vault.connect(stranger).poke({ gasLimit: await vault.connect(stranger).poke.estimateGas() })).wait();
     console.log(`      poke (trip) gas ${rc.gasUsed}`);
     expect(await vault.state()).to.equal(3);
     msgs = sentMessages(rc, hub);

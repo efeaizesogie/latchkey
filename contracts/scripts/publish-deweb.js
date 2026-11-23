@@ -45,20 +45,15 @@ const bindingAbi = [
 async function main() {
   const live = network.name === "xlayer";
   if (network.name === "localhost") await network.provider.send("hardhat_mine", ["0x1"]);
-  const dep = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "deployments", live ? "xlayer.json" : "fork.json"), "utf8"));
+  const depPath = path.join(__dirname, "..", "deployments", live ? "xlayer.json" : "fork.json");
+  const dep = JSON.parse(fs.readFileSync(depPath, "utf8"));
   const circuitId = BigInt(dep.circuitId);
+  const NAME = dep.tapeName;
   const [me] = await ethers.getSigners();
+  // v2: the herald holds the circuit and named the deployer as site operator (deploy.js); a v1-style holder also works.
   const proc = new ethers.Contract(PROCESSOR, ["function ownerOf(uint256) view returns (address)"], me);
-  if ((await proc.ownerOf(circuitId)).toLowerCase() !== me.address.toLowerCase()) throw new Error(`signer ${me.address} does not own circuit #${circuitId}`);
-
-  // the on-chain name: <circuit id>.<area code 2 = X Layer>.<processor index in the factory>
-  const fac = new ethers.Contract(FACTORY, ["function cpuCount() view returns (uint256)", "function cpuAt(uint256) view returns (address)"], me);
-  let cpuIndex = process.env.CPU_INDEX ? Number(process.env.CPU_INDEX) : 272;
-  if ((await fac.cpuAt(cpuIndex)).toLowerCase() !== PROCESSOR.toLowerCase()) {
-    const n = Number(await fac.cpuCount());
-    for (cpuIndex = 0; cpuIndex < n; cpuIndex++) if ((await fac.cpuAt(cpuIndex)).toLowerCase() === PROCESSOR.toLowerCase()) break;
-  }
-  const NAME = `${circuitId}.2.${cpuIndex}.tape`;
+  const holder = (await proc.ownerOf(circuitId)).toLowerCase();
+  console.log(`circuit #${circuitId} holder ${holder}${dep.herald && holder === dep.herald.toLowerCase() ? " (LatchkeyHerald)" : ""}; publishing as ${me.address}`);
 
   const opener = new ethers.Contract(OPENER, openerAbi, me);
   const sites = new ethers.Contract(SITES, sitesAbi, me);
@@ -84,7 +79,10 @@ async function main() {
     const r = await t.wait();
     console.log(`  ${label}: ${r.hash} (gas ${r.gasUsed})`);
   };
-  if (!opened) await tx("open container", opener.open(PROCESSOR, circuitId, { value: fee }));
+  if (!opened) {
+    if (holder !== me.address.toLowerCase()) throw new Error("container not opened yet: run deploy.js first");
+    await tx("open container", opener.open(PROCESSOR, circuitId, { value: fee }));
+  }
 
   const have = await sites.fileInfo(container, PATH).catch(() => null);
   let start = 1;
@@ -92,7 +90,10 @@ async function main() {
   else await tx(`putFile 1/${chunks.length}`, sites.putFile(container, PATH, "text/html; charset=utf-8", sha, chunks[0]));
   for (let i = start; i < chunks.length; i++) await tx(`appendChunk ${i + 1}/${chunks.length}`, sites.appendChunk(container, PATH, i, chunks[i]));
   if ((await sites.fallbackPath(container)) !== PATH) await tx("setFallback", sites.setFallback(container, PATH));
-  if (!(await binding.isLive(NAME, container))) await tx(`bind ${NAME}`, binding.bind(NAME, container, months, { value: monthly * months }));
+  if (!(await binding.isLive(NAME, container))) {
+    if (holder !== me.address.toLowerCase()) console.log(`  ! ${NAME} is not bound; bind it as the holder`);
+    else await tx(`bind ${NAME}`, binding.bind(NAME, container, months, { value: monthly * months }));
+  }
 
   const info = await sites.fileInfo(container, PATH);
   let back = Buffer.alloc(0);
@@ -105,8 +106,7 @@ async function main() {
   console.log(`live: ${await binding.isContainerLive(container)}  →  https://${NAME.replace(/\.tape$/, "").replace(/\./g, "-")}.tapekit.org/  ·  tape://${NAME}/`);
   if (!ok) process.exit(1);
 
-  const depPath = path.join(__dirname, "..", "deployments", live ? "xlayer.json" : "fork.json");
-  fs.writeFileSync(depPath, JSON.stringify({ ...dep, tapeName: NAME, container, siteSha256: sha }, null, 2) + "\n");
+  fs.writeFileSync(depPath, JSON.stringify({ ...dep, siteSha256: sha, sitePublishedAt: new Date().toISOString() }, null, 2) + "\n");
 }
 
 main().catch((e) => {

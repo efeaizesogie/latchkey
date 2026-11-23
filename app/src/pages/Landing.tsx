@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { Bit, Ring } from '../ui';
-import { net } from '../lib/config';
+import { dep } from '../lib/config';
 import { factoryInfo, fmt } from '../lib/vault';
 
 function HeroDemo() {
@@ -62,7 +62,7 @@ export function Landing() {
           <h2>Three moves. No company in the middle.</h2>
           <div class="grid3">
             <div class="card stack"><span class="mono meta">01</span><h3>Check in</h3><p class="muted">One tap, as often as you like. Each check-in restarts your window: 30 days, 90 days, a year.</p></div>
-            <div class="card stack"><span class="mono meta">02</span><h3>Go quiet</h3><p class="muted">Lost phone, seed phrase gone, or worse. When the window runs out, anyone can trip the latch. A TapeOut circuit decides, and once it trips it can never be undone.</p></div>
+            <div class="card stack"><span class="mono meta">02</span><h3>Go quiet</h3><p class="muted">Lost phone, seed phrase gone, or worse. When the window runs out a grace period starts, and you get a TapeSend message. Still quiet at the end, or two of your guardians confirm, and the latch trips. A TapeOut circuit decides, and a trip can never be undone.</p></div>
             <div class="card stack"><span class="mono meta">03</span><h3>It opens for them</h3><p class="muted">Only the address you named can claim: your own backup wallet, or your heir. They need nothing from us, just this page and a wallet.</p></div>
           </div>
         </div>
@@ -74,17 +74,18 @@ export function Landing() {
             <h2>Built to outlive us.</h2>
             <p class="muted">
               Inheritance apps are companies, and companies shut down. Latchkey has no servers and no admin key. The vault is a contract
-              nobody can upgrade, the latch is a circuit taped out on TapeOut, and this page itself is stored on X Layer and served from
-              its on-chain name.
+              nobody can upgrade, the latch is a circuit taped out on TapeOut, notices travel over TapeSend, and this page itself is stored
+              on X Layer in the circuit’s own container and served from its on-chain name.
             </p>
-            {net.tapeName && <p class="mono">tape://{net.tapeName}</p>}
+            {dep && <p class="mono">tape://{dep.tapeName}</p>}
           </div>
           <div class="card line stack" style={{ flex: '1 1 380px' } as any}>
             <dl class="kv">
               <dt>Who holds the keys</dt><dd>You do. We never see them.</dd>
               <dt>Who can move funds</dt><dd>You, while the latch is open. Your heir, once it trips.</dd>
-              <dt>What decides the trip</dt><dd>TapeOut circuit, 4 NAND + 1 LATCH</dd>
-              <dt>Can we freeze it</dt><dd>No. There is no admin.</dd>
+              <dt>What decides the trip</dt><dd>Two TapeOut circuits: the latch, and a 2-of-3 majority it includes by REF</dd>
+              <dt>Who tells you</dt><dd>TapeSend, from Latchkey’s own container</dd>
+              <dt>Can we freeze it</dt><dd>No. Nobody has admin power over vaults or funds.</dd>
               <dt>Cost</dt><dd>{fee ? `${fee.setup} OKB once · ${fee.bps / 100}% when claimed` : 'A setup fee once, a small cut at claim'}</dd>
             </dl>
           </div>

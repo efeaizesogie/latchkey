@@ -36,11 +36,11 @@ export function Bit({ on, big, label }: { on: boolean; big?: boolean; label?: st
 }
 
 /** Thin countdown ring. `left` from 0 to 1. */
-export function Ring({ left, children }: { left: number; children: ComponentChildren }) {
+export function Ring({ left, children, warn }: { left: number; children: ComponentChildren; warn?: boolean }) {
   const r = 46;
   const c = 2 * Math.PI * r;
   const v = Math.max(0, Math.min(1, left));
-  const low = v < 0.1;
+  const low = warn || v < 0.1;
   return (
     <div class="ring">
       <svg viewBox="0 0 100 100" aria-hidden="true">

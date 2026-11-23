@@ -18,11 +18,29 @@ export const chain = defineChain({
   id: net.chainId,
   name: net.name,
   nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
-  rpcUrls: { default: { http: [net.rpc] } },
+  rpcUrls: { default: { http: net.rpcs } },
   blockExplorers: net.explorer ? { default: { name: 'OKLink', url: net.explorer } } : undefined,
 });
 
-export const pub = createPublicClient({ chain, transport: http(net.rpc, { retryCount: 2, timeout: 20_000 }) });
+export const pub = createPublicClient({ chain, transport: http(net.rpcs[0], { retryCount: 2, timeout: 20_000 }) });
+/** One client per independent node operator (TAP-10 §5: adopt a read only when independent nodes agree). */
+export const pubs = net.rpcs.map((u) => createPublicClient({ chain, transport: http(u, { retryCount: 1, timeout: 15_000 }) }));
+
+export type Agreement = { nodes: number; agreed: boolean | null };
+const canon = (v: unknown) => JSON.stringify(v, (_k, x) => (typeof x === 'bigint' ? x.toString() : x));
+/**
+ * Read the same contract call from every node at the same block and compare. agreed = true when all answers match,
+ * false when any differ (the caller should not trust the value), null when only one node was reachable.
+ */
+export async function readAgreed<T>(call: (c: typeof pub, blockNumber?: bigint) => Promise<T>): Promise<{ value: T; agreement: Agreement }> {
+  if (pubs.length < 2) return { value: await call(pub), agreement: { nodes: 1, agreed: null } };
+  const block = (await pub.getBlockNumber()) - 2n; // a block every node has
+  const settled = await Promise.allSettled(pubs.map((c) => call(c, block)));
+  const ok = settled.filter((r): r is PromiseFulfilledResult<Awaited<T>> => r.status === 'fulfilled').map((r) => r.value);
+  if (!ok.length) throw (settled[0] as PromiseRejectedResult).reason;
+  const agreed = ok.length < 2 ? null : ok.every((v) => canon(v) === canon(ok[0]));
+  return { value: ok[0] as T, agreement: { nodes: ok.length, agreed } };
+}
 
 // ---------------------------------------------------------------- wallets
 
@@ -56,14 +74,14 @@ export const FORK_ACTORS: Actor[] = [];
 export const forkReady: Promise<void> =
   __FORK_BUILD__ && isFork
     ? import('viem/accounts').then(({ mnemonicToAccount }) => {
-        ['Ada (owner)', 'Tobi (heir)', 'Stranger'].forEach((name, i) => FORK_ACTORS.push({ name, account: mnemonicToAccount(TEST_MNEMONIC, { addressIndex: i }) }));
+        ['Ada (owner)', 'Tobi (heir)', 'Stranger', 'Gus (guardian)', 'Gia (guardian)'].forEach((name, i) => FORK_ACTORS.push({ name, account: mnemonicToAccount(TEST_MNEMONIC, { addressIndex: i }) }));
       })
     : Promise.resolve();
 declare const __FORK_BUILD__: boolean;
 
 export function useForkActor(i: number) {
   const a = FORK_ACTORS[i];
-  walletClient = createWalletClient({ chain, transport: http(net.rpc), account: a.account });
+  walletClient = createWalletClient({ chain, transport: http(net.rpcs[0]), account: a.account });
   activeProvider = null;
   account.value = a.account.address;
   walletName.value = a.name;
@@ -104,7 +122,7 @@ async function ensureChain() {
     if (e?.code !== 4902) throw e;
     await activeProvider.request({
       method: 'wallet_addEthereumChain',
-      params: [{ chainId: hex, chainName: net.name, nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 }, rpcUrls: [net.rpc], blockExplorerUrls: net.explorer ? [net.explorer] : [] }],
+      params: [{ chainId: hex, chainName: net.name, nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 }, rpcUrls: net.rpcs, blockExplorerUrls: net.explorer ? [net.explorer] : [] }],
     });
   }
 }
@@ -142,9 +160,12 @@ const PLAIN: Record<string, string> = {
   NotHeir: 'Only the address named as receiver can claim.',
   IsTripped: 'The latch has already tripped. It cannot be reopened.',
   NotTripped: 'The latch is still open, so nothing can be claimed yet.',
-  NotYet: 'The owner checked in recently. The circuit keeps the latch open until the window passes.',
-  BadWindow: 'Pick a window between 1 minute and 10 years.',
-  BadAddress: 'That address can’t be used here (empty, or the same as the owner).',
+  NothingToDo: 'Nothing to do yet: the circuit keeps the latch where it is until the next deadline.',
+  NoGracePeriod: 'Guardians can only confirm while a grace period is running.',
+  NotGuardian: 'This wallet is not one of the vault’s guardians.',
+  CircuitWorks: 'The circuit is answering normally, so the safety valve is not needed.',
+  BadWindow: 'Pick a window between 1 minute and 10 years, and a grace period between 1 minute and 1 year.',
+  BadAddress: 'That address can’t be used here (empty, repeated, or already the owner or receiver).',
   CircuitFailed: 'The TapeOut circuit did not answer as expected. Nothing changed.',
   SetupFee: 'The setup fee was not included.',
 };
