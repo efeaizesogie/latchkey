@@ -2,6 +2,25 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import { net, isFork } from './lib/config';
 import { account, wallets, walletsScanned, connect, disconnect, short, FORK_ACTORS, useForkActor, walletName, walletIcon, walletLinks, explain } from './lib/chain';
+import { myVaults } from './lib/vault';
+import type { Address } from 'viem';
+
+/**
+ * After connecting from the landing page or the guide, take people to their next step instead of leaving them where
+ * they were: no vaults yet -> the guide with its setup checklist; owner, receiver or guardian -> My vaults.
+ * Someone who connected in the middle of a task (creating, or on a vault link) stays where they are.
+ */
+async function nextStep(addr: Address) {
+  const r = location.hash.slice(1) || '/';
+  if (r !== '/' && !r.startsWith('/start')) return;
+  try {
+    const m = await myVaults(addr);
+    const named = m.owned.length + m.heirOf.length + m.guardianOf.length;
+    location.hash = named ? '/mine' : '/start';
+  } catch {
+    location.hash = '/start';
+  }
+}
 
 /** Open with picker.value = true from anywhere. */
 export const picker = signal(false);
@@ -68,6 +87,7 @@ export function ConnectModal() {
     try {
       await connect(w);
       close();
+      if (account.value) nextStep(account.value);
     } catch (e) {
       setErr(explain(e));
       setBusy(null);
@@ -137,7 +157,7 @@ export function ConnectModal() {
                 <ul class="wallet-list">
                   {FORK_ACTORS.map((p, i) => (
                     <li>
-                      <button class="wallet-row" onClick={() => { useForkActor(i); close(); }} data-autofocus={found.length === 0 && i === 0 ? '' : undefined}>
+                      <button class="wallet-row" onClick={() => { useForkActor(i); close(); if (account.value) nextStep(account.value); }} data-autofocus={found.length === 0 && i === 0 ? '' : undefined}>
                         <WalletGlyph name={p.name} />
                         <span class="wallet-name">{p.name}<small class="mono">{short(p.account.address)}</small></span>
                         <span class="chev" aria-hidden="true">›</span>

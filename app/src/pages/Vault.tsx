@@ -6,6 +6,8 @@ import { net, dep, isFork, explorerAddr, WINDOWS, GRACES, ZERO, type Token } fro
 import { loadVault, duration, windowLabel, fmt, heraldNotices, resolveInbox, type VaultView, type Notice } from '../lib/vault';
 import { Bit, Ring, Qr, Copy, Err, TxNote, useNow } from '../ui';
 import { picker } from '../app';
+import { Checklist, focusSection } from '../Checklist';
+import { ownerSteps, markDone, progressTick } from '../lib/onboarding';
 
 type Act = { stage: TxStage; hash?: Hash; what: string };
 type Run = (what: string, fn: (on: (s: TxStage, h?: Hash) => void) => Promise<unknown>) => void;
@@ -19,7 +21,18 @@ export function VaultPage({ address }: { address: Address }) {
   const [err, setErr] = useState<string | null>(null);
   const local = useNow(1000);
   const now = local + offset;
-  const fresh = new URLSearchParams(location.hash.split('?')[1] ?? '').has('new');
+  const query = new URLSearchParams(location.hash.split('?')[1] ?? '');
+  const fresh = query.has('new');
+  const stepParam = query.get('step');
+  const focused = useRef(false);
+  void progressTick.value;
+  useEffect(() => {
+    if (!v || focused.current) return;
+    const target = stepParam ?? (fresh ? 'fund' : null);
+    if (!target) return;
+    focused.current = true;
+    setTimeout(() => focusSection(target), 250);
+  }, [v]);
 
   async function refresh() {
     try {
@@ -83,8 +96,18 @@ export function VaultPage({ address }: { address: Address }) {
           </div>
         </div>
 
-        {fresh && isOwner && v.phase === 'open' && (
-          <p class="note">Vault created. Fund it below, then send the link to {short(v.heir)} and your guardians, or keep it with your papers.</p>
+        {isOwner && v.phase === 'open' && (
+          <Checklist
+            compact
+            steps={ownerSteps(true, v)}
+            title={fresh ? 'Vault created. Next steps' : 'Finish setting up'}
+            actions={{
+              fund: { label: 'Add funds', run: () => focusSection('fund') },
+              share: { label: 'Share the link', run: () => focusSection('share') },
+              remind: { label: 'Add reminders', run: () => focusSection('share') },
+              checkin: { label: 'Check in now', run: () => focusSection('checkin') },
+            }}
+          />
         )}
 
         {/* ---------------------------------------------------------------- open */}
@@ -215,7 +238,7 @@ export function VaultPage({ address }: { address: Address }) {
 
 function CheckIn({ v, busy, run }: { v: VaultView; busy: boolean; run: Run }) {
   return (
-    <button class="btn primary block" disabled={busy} onClick={() => run('Check in', (on) => send({ address: v.address, abi: vaultAbi, functionName: 'checkIn' }, on))}>
+    <button id="checkin" class="btn primary block" disabled={busy} onClick={() => run('Check in', (on) => send({ address: v.address, abi: vaultAbi, functionName: 'checkIn' }, on))}>
       {busy ? 'Working…' : v.phase === 'grace' ? 'I’m here: cancel the grace period' : 'Check in'}
     </button>
   );
@@ -227,7 +250,7 @@ function Fund({ v, busy, run }: { v: VaultView; busy: boolean; run: Run }) {
   let raw = 0n, bad = false;
   try { raw = amt.trim() ? parseUnits(amt.trim(), tok.decimals) : 0n; } catch { bad = true; }
   return (
-    <div class="card stack" style={{ '--gap': '16px' } as any}>
+    <div id="fund" class="card stack" style={{ '--gap': '16px' } as any}>
       <h3>Add funds</h3>
       <p class="muted">Send to the vault address from any wallet, or withdraw from OKX straight to it on the X Layer network.</p>
       <div class="row wrap" style={{ alignItems: 'flex-start', gap: '16px' }}>
@@ -366,15 +389,18 @@ function Share({ v }: { v: VaultView }) {
   const onchain = dep ? `tape://${dep.tapeName}/#/v/${v.address}` : '';
   const a = useRef<HTMLAnchorElement>(null);
   return (
-    <div class="card stack" style={{ '--gap': '14px' } as any}>
+    <div id="share" class="card stack" style={{ '--gap': '14px' } as any}>
       <h3>Don’t forget, and don’t keep it secret</h3>
       <p class="muted">Put check-in reminders in your calendar, and give the receiver and your guardians this link. It only lets them watch until the latch trips.</p>
       {onchain && <p class="mono meta" style={{ overflowWrap: 'anywhere' }}>{onchain}</p>}
       <div class="row wrap">
-        <a ref={a} class="btn small" download="latchkey-check-in.ics" href={`data:text/calendar;charset=utf-8,${encodeURIComponent(ics(v))}`}>Add reminders to calendar</a>
-        <Copy text={link} label="Copy vault link" />
-        {onchain && <Copy text={onchain} label="Copy on-chain link" />}
-        <button class="btn small quiet" onClick={() => print()}>Print a card</button>
+        <a ref={a} class="btn small" download="latchkey-check-in.ics" href={`data:text/calendar;charset=utf-8,${encodeURIComponent(ics(v))}`} onClick={() => markDone(v.address, 'remind')}>Add reminders to calendar</a>
+        {typeof navigator !== 'undefined' && 'share' in navigator && (
+          <button class="btn small quiet" onClick={() => navigator.share({ title: 'Latchkey vault', text: `My Latchkey vault. Keep this link: it opens for you if I go quiet.`, url: link }).then(() => markDone(v.address, 'share')).catch(() => {})}>Share…</button>
+        )}
+        <Copy text={link} label="Copy vault link" onCopied={() => markDone(v.address, 'share')} />
+        {onchain && <Copy text={onchain} label="Copy on-chain link" onCopied={() => markDone(v.address, 'share')} />}
+        <button class="btn small quiet" onClick={() => { markDone(v.address, 'share'); print(); }}>Print a card</button>
       </div>
     </div>
   );

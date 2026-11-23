@@ -18,7 +18,6 @@ export function Stats() {
   return (
     <section class="shell section" style={{ paddingTop: '28px' }}>
       <div class="stack" style={{ '--gap': '22px', maxWidth: '760px', margin: '0 auto' } as any}>
-        <span class="tag">Read live from X Layer</span>
         <h2>Latchkey on chain</h2>
         <p class="muted">Everything on this page comes straight from the factory, the vaults, and the TapeSend hub. There is no database.</p>
         {err && <p class="err">{err}</p>}

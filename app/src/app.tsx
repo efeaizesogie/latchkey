@@ -10,6 +10,7 @@ import { VaultPage } from './pages/Vault';
 import { Proof } from './pages/Proof';
 import { Mine } from './pages/Mine';
 import { Stats } from './pages/Stats';
+import { Guide } from './pages/Guide';
 
 export const route = signal(location.hash.slice(1) || '/');
 window.addEventListener('hashchange', () => {
@@ -40,6 +41,7 @@ export function App() {
   else if (r === '/proof') page = <Proof />;
   else if (r === '/mine') page = <Mine />;
   else if (r === '/stats') page = <Stats />;
+  else if (r.startsWith('/start')) page = <Guide />;
   else page = <Landing />;
   return (
     <>
@@ -47,6 +49,7 @@ export function App() {
         <div class="shell">
           <a class="brand" href="#/" aria-label="Latchkey home"><Mark /> Latchkey</a>
           <div class="row">
+            <a class="navlink" href="#/start">How to use</a>
             <span class="netpill" title={net.name}>{isFork ? 'fork' : 'X Layer'}</span>
             <WalletButton />
           </div>
@@ -56,7 +59,7 @@ export function App() {
       <footer class="foot">
         <div class="shell spread" style={{ flexWrap: 'wrap' }}>
           <span>Latchkey · self-custodial · no admin over funds · {dep ? <span class="mono">{dep.tapeName}</span> : 'X Layer'}</span>
-          <span class="row wrap"><a href="#/proof">How the latch works</a><a href="#/stats">On-chain stats</a><a href="#/mine">My vaults</a></span>
+          <span class="row wrap"><a href="#/start">How to use</a><a href="#/proof">How the latch works</a><a href="#/stats">On-chain stats</a><a href="#/mine">My vaults</a></span>
         </div>
       </footer>
       <ConnectModal />

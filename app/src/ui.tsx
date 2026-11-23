@@ -65,7 +65,7 @@ export function Qr({ text }: { text: string }) {
   return <div class="qr" dangerouslySetInnerHTML={{ __html: svg }} />;
 }
 
-export function Copy({ text, label = 'Copy' }: { text: string; label?: string }) {
+export function Copy({ text, label = 'Copy', onCopied }: { text: string; label?: string; onCopied?: () => void }) {
   const [done, setDone] = useState(false);
   return (
     <button
@@ -75,6 +75,7 @@ export function Copy({ text, label = 'Copy' }: { text: string; label?: string })
           const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
         }
         setDone(true); setTimeout(() => setDone(false), 1400);
+        onCopied?.();
       }}
     >
       {done ? 'Copied' : label}

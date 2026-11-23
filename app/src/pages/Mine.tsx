@@ -4,6 +4,9 @@ import { account, short, disconnect, walletName } from '../lib/chain';
 import { myVaults, loadVault, type VaultView, duration, windowLabel } from '../lib/vault';
 import { Bit, useNow } from '../ui';
 import { picker } from '../app';
+import { Checklist } from '../Checklist';
+import { ownerSteps, progressTick, latestOpenVault } from '../lib/onboarding';
+import { ownerActions } from './Guide';
 
 function Row({ addr }: { addr: Address }) {
   const [v, setV] = useState<VaultView | null>(null);
@@ -27,7 +30,12 @@ function Row({ addr }: { addr: Address }) {
 export function Mine() {
   const a = account.value;
   const [list, setList] = useState<{ owned: Address[]; heirOf: Address[]; guardianOf: Address[] } | null>(null);
-  useEffect(() => { if (a) myVaults(a).then(setList).catch(() => setList({ owned: [], heirOf: [], guardianOf: [] })); }, [a]);
+  const [latest, setLatest] = useState<VaultView | null>(null);
+  useEffect(() => {
+    setLatest(null);
+    if (a) myVaults(a).then((m) => { setList(m); latestOpenVault(m.owned).then(setLatest); }).catch(() => setList({ owned: [], heirOf: [], guardianOf: [] }));
+  }, [a]);
+  void progressTick.value;
   if (!a)
     return (
       <section class="shell section"><div class="narrow stack">
@@ -40,6 +48,16 @@ export function Mine() {
       <div class="narrow stack" style={{ '--gap': '22px' } as any}>
         <div class="spread"><h2>Your vaults</h2><a class="btn small" href="#/new">New vault</a></div>
         <p class="meta">{walletName.value} · <span class="mono">{short(a)}</span> · <button class="linkbtn" onClick={disconnect}>Disconnect</button></p>
+        {list && (latest || (list.heirOf.length === 0 && list.guardianOf.length === 0) || list.owned.length > 0) && (
+          <Checklist
+            steps={ownerSteps(true, latest)}
+            title={latest ? `Finish setting up ${short(latest.address)}` : 'Protect your crypto in about a minute'}
+            actions={ownerActions(latest)}
+          />
+        )}
+        {list && list.owned.length === 0 && (list.heirOf.length > 0 || list.guardianOf.length > 0) && (
+          <p class="note">You’ve been named in {list.heirOf.length + list.guardianOf.length} vault{list.heirOf.length + list.guardianOf.length > 1 ? 's' : ''} below. <a href={`#/start?role=${list.heirOf.length ? 'receiver' : 'guardian'}`}>What do I do?</a></p>
+        )}
         <div class="card">
           <h3>You own</h3>
           {!list ? <p class="meta">reading…</p> : list.owned.length ? <ul class="list">{list.owned.map((x) => <Row addr={x} />)}</ul> : <p class="muted" style={{ marginTop: '10px' }}>None yet. <a href="#/new">Set a latch</a>.</p>}

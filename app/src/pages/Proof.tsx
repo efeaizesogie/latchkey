@@ -116,7 +116,6 @@ export function Proof() {
   return (
     <section class="shell section" style={{ paddingTop: '28px' }}>
       <div class="narrow stack" style={{ '--gap': '22px' } as any}>
-        <span class="tag">Don’t trust us. Read the chip.</span>
         <h2>The latch is a circuit on TapeOut.</h2>
         <p class="muted">
           Every vault stores two bits: <i>warn</i> (a grace period is running) and <i>q</i> (tripped). The vault contract cannot set them itself.

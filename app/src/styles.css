@@ -250,3 +250,37 @@ p { margin: 0; }
   body, html { background: #fff; color: #000; }
   .card { background: #fff; border: 1px solid #999; }
 }
+
+/* ---------- onboarding checklist ---------- */
+.checklist { background: var(--card); border: 1px solid var(--hair); border-radius: var(--r-card); padding: 20px; display: grid; gap: 14px; }
+@media (min-width: 760px) { .checklist { padding: 24px 28px; } }
+.checklist__bar { height: 4px; border-radius: 4px; background: var(--raised); overflow: hidden; }
+.checklist__bar i { display: block; height: 100%; background: var(--brass); border-radius: 4px; transition: width .5s cubic-bezier(.22,1,.36,1); }
+.checklist__steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.checklist__steps li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; padding: 10px 8px; border-radius: 12px; align-items: start; }
+.checklist__steps li.is-current { background: rgba(255,255,255,.035); }
+.checklist__mark { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--hair-hi); display: grid; place-items: center; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.is-done .checklist__mark { background: rgba(126,224,163,.14); border-color: rgba(126,224,163,.4); color: #7ee0a3; }
+.is-current .checklist__mark { border-color: var(--brass); color: var(--brass); }
+.checklist__body { display: grid; gap: 8px; justify-items: start; padding-top: 3px; }
+.checklist__body b { font-weight: 500; }
+.is-done .checklist__body b { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--hair-hi); }
+.checklist__body p { color: var(--ink-2); font-size: 15px; }
+.checklist--compact .checklist__steps li { padding-block: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.spotlight { animation: spotlight 1.6s ease-out; }
+@keyframes spotlight { 0% { box-shadow: 0 0 0 0 rgba(233,180,76,.0); } 15% { box-shadow: 0 0 0 3px rgba(233,180,76,.55); } 100% { box-shadow: 0 0 0 3px rgba(233,180,76,0); } }
+
+/* ---------- guide ---------- */
+.role-tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--raised); border-radius: var(--r-pill); padding: 4px; gap: 2px; }
+.role-tabs button { border: 0; background: transparent; min-height: 44px; border-radius: var(--r-pill); cursor: pointer; color: var(--ink-2); font-size: 14px; padding: 0 8px; }
+.role-tabs button[aria-selected='true'] { background: var(--canvas); color: var(--ink); }
+.guide-steps { list-style: none; margin: 0; padding: 0; counter-reset: g; display: grid; gap: 12px; }
+.guide-steps li { counter-increment: g; display: grid; grid-template-columns: 40px 1fr; gap: 14px; background: var(--card); border: 1px solid var(--hair); border-radius: var(--r-card); padding: 18px; }
+.guide-steps li::before { content: counter(g, decimal-leading-zero); font-family: var(--mono); font-size: 13px; color: var(--brass); padding-top: 2px; }
+.guide-steps b { font-weight: 500; display: block; margin-bottom: 4px; }
+.guide-steps p { color: var(--ink-2); font-size: 15px; }
+
+.navlink { font-size: 14px; color: var(--ink-2); text-decoration: none; padding: 8px 4px; }
+.navlink:hover { color: var(--ink); }
+@media (max-width: 420px) { .netpill { display: none; } }

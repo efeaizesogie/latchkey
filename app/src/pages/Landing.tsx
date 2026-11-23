@@ -235,7 +235,6 @@ export function Landing() {
         <div class="lp-hero__shade" />
         <div class="shell lp-hero__grid">
           <div class="stack" style={{ '--gap': '26px' } as any}>
-            <span class="eyebrow" data-reveal><i />On-chain dead man’s switch · X Layer</span>
             <h1 data-reveal data-reveal-delay="1">Who gets your crypto <span class="dim">if you lose your phone tomorrow?</span></h1>
             <p class="lead" data-reveal data-reveal-delay="2">
               Latchkey is a vault with a latch. Check in now and then. If you go quiet for longer than you chose, the latch trips and
@@ -262,7 +261,6 @@ export function Landing() {
       {/* ---------------------------------------------------------------- film */}
       <section class="shell section">
         <div class="lp-head" data-reveal>
-          <span class="eyebrow"><i />Watch a latch trip</span>
           <h2 class="lp-h2">One quiet season. <span class="dim">Then it opens for them.</span></h2>
         </div>
         <Film />
@@ -271,7 +269,6 @@ export function Landing() {
       {/* ---------------------------------------------------------------- three moves, with living fragments */}
       <section class="shell section">
         <div class="lp-head" data-reveal>
-          <span class="eyebrow"><i />How it works</span>
           <h2 class="lp-h2">Three moves. <span class="dim">No company in the middle.</span></h2>
         </div>
         <div class="lgrid">
@@ -316,7 +313,6 @@ export function Landing() {
       <section class="shell section">
         <div class="row wrap" style={{ gap: '40px', alignItems: 'flex-start' }}>
           <div class="stack" style={{ flex: '1 1 380px', '--gap': '20px' } as any} data-reveal>
-            <span class="eyebrow"><i />Can’t disappear</span>
             <h2 class="lp-h2">Built to outlive us. <span class="dim">Even this page.</span></h2>
             <p class="lp-sub">
               Inheritance apps are companies, and companies shut down. Latchkey has no servers, and nobody holds an admin key over your vault or your money. The vault is a contract
