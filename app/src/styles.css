@@ -284,3 +284,8 @@ p { margin: 0; }
 .navlink { font-size: 14px; color: var(--ink-2); text-decoration: none; padding: 8px 4px; }
 .navlink:hover { color: var(--ink); }
 @media (max-width: 420px) { .netpill { display: none; } }
+
+.wait-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--hair); font-size: 14px; color: var(--ink-2); }
+.wait-row span:nth-child(2) { flex: 1 1 180px; }
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--hair-hi); border-top-color: var(--brass); animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import { net, isFork } from './lib/config';
-import { account, wallets, walletsScanned, connect, disconnect, short, FORK_ACTORS, useForkActor, walletName, walletIcon, walletLinks, explain } from './lib/chain';
+import { account, wallets, walletsScanned, connect, disconnect, short, FORK_ACTORS, useForkActor, walletName, walletIcon, walletLinks, explain, waiting } from './lib/chain';
 import { myVaults } from './lib/vault';
 import type { Address } from 'viem';
 
@@ -48,6 +48,7 @@ export function ConnectModal() {
   const opener = useRef<Element | null>(null);
 
   const close = () => {
+    waiting.value?.cancel(); // closing the dialog also stops waiting on the wallet
     picker.value = false;
     setErr(null);
     setBusy(null);
@@ -136,6 +137,14 @@ export function ConnectModal() {
                   </li>
                 ))}
               </ul>
+            )}
+
+            {busy && (
+              <div class="wait-row" aria-live="polite">
+                <span class="spinner" aria-hidden="true" />
+                <span>Approve the connection in your wallet. Nothing happening?</span>
+                <button class="btn small quiet" onClick={() => waiting.value?.cancel()}>Cancel</button>
+              </div>
             )}
 
             {walletsScanned.value && found.length === 0 && !isFork && (

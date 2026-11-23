@@ -3,7 +3,7 @@ import type { ComponentChildren } from 'preact';
 import qrcode from 'qrcode-generator';
 import type { Hash } from 'viem';
 import { explorerTx } from './lib/config';
-import type { TxStage } from './lib/chain';
+import { waiting, type TxStage } from './lib/chain';
 
 export function Mark({ size = 22 }: { size?: number }) {
   // A key bow with one square bit: the latch.
@@ -95,6 +95,7 @@ export function TxNote({ stage, hash, what }: { stage: TxStage; hash?: Hash; wha
   return (
     <p class="meta" aria-live="polite">
       {text}{' '}
+      {stage === 'signing' && waiting.value && <button class="linkbtn" onClick={() => waiting.value?.cancel()}>Cancel</button>}
       {hash && (link ? <a href={link} target="_blank" rel="noreferrer" class="mono">{hash.slice(0, 10)}…</a> : <span class="mono">{hash.slice(0, 10)}…</span>)}
     </p>
   );

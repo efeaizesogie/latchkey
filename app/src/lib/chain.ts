@@ -142,7 +142,7 @@ export function useForkActor(i: number) {
 }
 
 export async function connect(w: Discovered) {
-  const accs = (await w.provider.request({ method: 'eth_requestAccounts' })) as Address[];
+  const accs = (await guard(w.provider.request({ method: 'eth_requestAccounts' }), 'connect', 90_000)) as Address[];
   if (!accs?.[0]) throw new Error('The wallet did not share an account.');
   attach(w, accs[0]);
   try { localStorage.setItem('lk.wallet', w.rdns || w.name); } catch {}
@@ -159,19 +159,44 @@ export function disconnect() {
 
 export const connected = computed(() => account.value !== null);
 
+/**
+ * Wallet prompts can hang: some wallets never answer when their popup is closed, or keep an old request open.
+ * Every prompt goes through guard(): the UI can cancel it (waiting.value.cancel) and it gives up after a timeout,
+ * so the app never sits on "check your wallet" forever. A prompt approved after cancelling is simply ignored.
+ */
+export class WalletWait extends Error {
+  reason: 'cancelled' | 'timeout';
+  constructor(reason: 'cancelled' | 'timeout') { super(reason); this.reason = reason; }
+}
+export const waiting = signal<null | { what: string; cancel: () => void }>(null);
+function guard<T>(p: Promise<T>, what: string, ms: number): Promise<T> {
+  let cancel!: () => void;
+  let timer: ReturnType<typeof setTimeout>;
+  const stop = new Promise<never>((_, reject) => {
+    cancel = () => reject(new WalletWait('cancelled'));
+    timer = setTimeout(() => reject(new WalletWait('timeout')), ms);
+  });
+  waiting.value = { what, cancel };
+  p.catch(() => {}); // a late rejection after we stopped waiting must not surface as unhandled
+  return Promise.race([p, stop]).finally(() => {
+    clearTimeout(timer);
+    if (waiting.value?.cancel === cancel) waiting.value = null;
+  });
+}
+
 async function ensureChain() {
   if (!activeProvider) return;
   const hex = ('0x' + net.chainId.toString(16)) as `0x${string}`;
   const cur = (await activeProvider.request({ method: 'eth_chainId' })) as string;
   if (parseInt(cur, 16) === net.chainId) return;
   try {
-    await activeProvider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hex }] });
+    await guard(activeProvider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hex }] }), 'switch network', 90_000);
   } catch (e: any) {
     if (e?.code !== 4902) throw e;
-    await activeProvider.request({
+    await guard(activeProvider.request({
       method: 'wallet_addEthereumChain',
       params: [{ chainId: hex, chainName: net.name, nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 }, rpcUrls: net.rpcs, blockExplorerUrls: net.explorer ? [net.explorer] : [] }],
-    });
+    }), 'add network', 90_000);
   }
 }
 
@@ -184,7 +209,7 @@ export async function send(req: { address: Address; abi: any; functionName: stri
   await ensureChain();
   const { request } = await pub.simulateContract({ ...req, account: account.value } as any);
   onStage?.('signing');
-  const hash = await walletClient.writeContract({ ...(request as any), account: walletClient.account ?? account.value, chain });
+  const hash = await guard(walletClient.writeContract({ ...(request as any), account: walletClient.account ?? account.value, chain }), 'sign', 180_000);
   onStage?.('pending', hash);
   const receipt = await pub.waitForTransactionReceipt({ hash, timeout: 120_000 });
   if (receipt.status !== 'success') throw new Error('The transaction was included but reverted.');
@@ -196,7 +221,7 @@ export async function sendValue(to: Address, value: bigint, onStage?: (s: TxStag
   if (!walletClient || !account.value) throw new Error('Connect a wallet first.');
   await ensureChain();
   onStage?.('signing');
-  const hash = await walletClient.sendTransaction({ to, value, account: walletClient.account ?? account.value, chain });
+  const hash = await guard(walletClient.sendTransaction({ to, value, account: walletClient.account ?? account.value, chain }), 'sign', 180_000);
   onStage?.('pending', hash);
   await pub.waitForTransactionReceipt({ hash, timeout: 120_000 });
   onStage?.('done', hash);
@@ -220,6 +245,14 @@ const PLAIN: Record<string, string> = {
 
 /** Turn any wallet / RPC / revert error into one plain sentence. */
 export function explain(e: unknown): string {
+  if (e instanceof WalletWait)
+    return e.reason === 'cancelled'
+      ? 'Cancelled. If your wallet window is still open, close or reject it there.'
+      : 'Your wallet didn’t answer. Open the wallet, close any waiting request, and try again.';
+  const code = (e as any)?.code ?? (e as any)?.cause?.code;
+  if (code === 4001) return 'You declined the request in your wallet. Nothing was sent.';
+  if (code === -32002) return 'Your wallet already has a request waiting. Open the wallet window to finish or reject it, then try again.';
+  if (code === 4100) return 'Your wallet is locked or hasn’t approved this site yet. Unlock it and try again.';
   if (e instanceof BaseError) {
     const rev = e.walk((x) => x instanceof ContractFunctionRevertedError) as ContractFunctionRevertedError | null;
     const name = rev?.data?.errorName;
