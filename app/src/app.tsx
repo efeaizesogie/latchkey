@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import { Mark } from './ui';
 import { net, isFork, dep } from './lib/config';
-import { account, wallets, connect, disconnect, short, FORK_ACTORS, forkReady, useForkActor, walletName, explain } from './lib/chain';
+import { account, short, forkReady, useForkActor, walletName } from './lib/chain';
+import { ConnectModal, picker } from './Connect';
 import { Landing } from './pages/Landing';
 import { Create } from './pages/Create';
 import { VaultPage } from './pages/Vault';
@@ -17,47 +18,14 @@ window.addEventListener('hashchange', () => {
 });
 export const go = (r: string) => (location.hash = r);
 
-export const picker = signal(false);
+export { picker };
 
 function WalletButton() {
   const a = account.value;
-  if (a)
-    return (
-      <button class="btn small quiet" onClick={() => go('/mine')} title={walletName.value}>
-        <span class="mono">{short(a)}</span>
-      </button>
-    );
-  return <button class="btn small" onClick={() => (picker.value = true)}>Connect</button>;
-}
-
-function Picker() {
-  const [err, setErr] = useState<string | null>(null);
-  if (!picker.value) return null;
-  const close = () => { picker.value = false; setErr(null); };
   return (
-    <div role="dialog" aria-modal="true" aria-label="Connect a wallet" style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(10,10,14,.7)', display: 'grid', placeItems: 'end center' }} onClick={close}>
-      <div class="card stack" style={{ width: 'min(480px, 100%)', borderRadius: '18px 18px 0 0', marginBottom: 0, '--gap': '12px' } as any} onClick={(e) => e.stopPropagation()}>
-        <div class="spread"><h3>Connect</h3><button class="linkbtn" onClick={close}>Close</button></div>
-        {isFork && (
-          <div class="dev stack" style={{ '--gap': '8px' } as any}>
-            <p class="meta">Local fork: pick a test person (keys are Hardhat’s public test keys, worthless).</p>
-            {FORK_ACTORS.map((a, i) => (
-              <button class="btn block quiet" onClick={() => { useForkActor(i); close(); }}>{a.name} <span class="mono meta">{short(a.account.address)}</span></button>
-            ))}
-          </div>
-        )}
-        {wallets.value.map((w) => (
-          <button class="btn block quiet" onClick={async () => { try { await connect(w); close(); } catch (e) { setErr(explain(e)); } }}>
-            {w.icon && <img src={w.icon} alt="" width={22} height={22} />} {w.name}
-          </button>
-        ))}
-        {!wallets.value.length && !isFork && (
-          <p class="muted">No wallet found in this browser. Open this page in the OKX Wallet app (Discover → paste the link), or install a browser wallet.</p>
-        )}
-        {err && <p class="err">{err}</p>}
-        {account.value && <button class="linkbtn" onClick={() => { disconnect(); close(); }}>Disconnect {short(account.value)}</button>}
-      </div>
-    </div>
+    <button class={`btn small ${a ? 'quiet' : ''}`} onClick={() => (picker.value = true)} aria-haspopup="dialog" title={a ? walletName.value : undefined}>
+      {a ? <span class="mono">{short(a)}</span> : 'Connect'}
+    </button>
   );
 }
 
@@ -91,7 +59,7 @@ export function App() {
           <span class="row wrap"><a href="#/proof">How the latch works</a><a href="#/stats">On-chain stats</a><a href="#/mine">My vaults</a></span>
         </div>
       </footer>
-      <Picker />
+      <ConnectModal />
     </>
   );
 }

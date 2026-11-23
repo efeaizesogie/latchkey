@@ -73,7 +73,7 @@ export function Landing() {
           <div class="stack" style={{ flex: '1 1 380px' } as any}>
             <h2>Built to outlive us.</h2>
             <p class="muted">
-              Inheritance apps are companies, and companies shut down. Latchkey has no servers and no admin key. The vault is a contract
+              Inheritance apps are companies, and companies shut down. Latchkey has no servers, and nobody holds an admin key over your vault or your money. The vault is a contract
               nobody can upgrade, the latch is a circuit taped out on TapeOut, notices travel over TapeSend, and this page itself is stored
               on X Layer in the circuit’s own container and served from its on-chain name.
             </p>

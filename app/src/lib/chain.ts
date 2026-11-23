@@ -44,10 +44,11 @@ export async function readAgreed<T>(call: (c: typeof pub, blockNumber?: bigint) 
 
 // ---------------------------------------------------------------- wallets
 
-type Discovered = { id: string; name: string; icon: string; provider: EIP1193Provider };
+type Discovered = { id: string; rdns: string; name: string; icon: string; provider: EIP1193Provider };
 export const wallets = signal<Discovered[]>([]);
 export const account = signal<Address | null>(null);
 export const walletName = signal<string>('');
+export const walletIcon = signal<string>('');
 let walletClient: WalletClient | null = null;
 let activeProvider: EIP1193Provider | null = null;
 
@@ -55,14 +56,66 @@ if (typeof window !== 'undefined') {
   window.addEventListener('eip6963:announceProvider', (e: any) => {
     const d = e.detail;
     if (!d?.info || !d?.provider) return;
-    if (wallets.value.some((w) => w.id === d.info.uuid)) return;
-    wallets.value = [...wallets.value, { id: d.info.uuid, name: d.info.name, icon: d.info.icon, provider: d.provider }];
+    if (wallets.value.some((w) => w.id === d.info.uuid || (d.info.rdns && w.rdns === d.info.rdns))) return;
+    wallets.value = [...wallets.value, { id: d.info.uuid, rdns: d.info.rdns ?? '', name: d.info.name, icon: d.info.icon, provider: d.provider }];
   });
   window.dispatchEvent(new Event('eip6963:requestProvider'));
   setTimeout(() => {
-    const eth = (window as any).okxwallet ?? (window as any).ethereum;
-    if (eth && wallets.value.length === 0) wallets.value = [{ id: 'injected', name: (window as any).okxwallet ? 'OKX Wallet' : 'Browser wallet', icon: '', provider: eth }];
-  }, 400);
+    // Wallets that predate EIP-6963 (and in-app browsers) only inject window.ethereum / window.okxwallet.
+    const w = window as any;
+    const eth = w.okxwallet ?? w.ethereum;
+    if (eth && wallets.value.length === 0)
+      wallets.value = [{ id: 'injected', rdns: w.okxwallet ? 'com.okex.wallet' : 'injected', name: w.okxwallet ? 'OKX Wallet' : eth.isMetaMask ? 'MetaMask' : 'Browser wallet', icon: '', provider: eth }];
+    walletsScanned.value = true;
+    reconnect();
+  }, 500);
+}
+
+/** True once wallet discovery has had time to finish (so the UI can tell "none found" from "still looking"). */
+export const walletsScanned = signal(false);
+
+/** Open this page inside a wallet app's browser (for phones without an injected wallet). */
+export function walletLinks() {
+  const url = location.href;
+  const bare = url.replace(/^https?:\/\//, '');
+  return {
+    // OKX's universal link: opens the dapp browser in OKX Wallet, or the install page when the app is missing
+    okx: 'https://www.okx.com/download?deeplink=' + encodeURIComponent('okx://wallet/dapp/url?dappUrl=' + encodeURIComponent(url)),
+    metamask: 'https://metamask.app.link/dapp/' + bare,
+  };
+}
+
+const listening = new WeakSet<object>();
+function attach(w: Discovered, addr: Address) {
+  activeProvider = w.provider;
+  walletClient = createWalletClient({ chain, transport: custom(w.provider), account: addr });
+  account.value = addr;
+  walletName.value = w.name;
+  walletIcon.value = w.icon;
+  const p = w.provider as any;
+  if (p.on && !listening.has(p)) {
+    listening.add(p);
+    p.on('accountsChanged', (a: Address[]) => {
+      if (activeProvider !== w.provider) return;
+      if (!a[0]) return disconnect();
+      account.value = a[0];
+      walletClient = createWalletClient({ chain, transport: custom(w.provider), account: a[0] });
+    });
+    p.on('disconnect', () => { if (activeProvider === w.provider) disconnect(); });
+  }
+}
+
+/** After a reload, quietly resume the wallet the user connected last (eth_accounts never prompts). */
+async function reconnect() {
+  let saved = '';
+  try { saved = localStorage.getItem('lk.wallet') ?? ''; } catch {}
+  if (!saved || account.value) return;
+  const w = wallets.value.find((x) => x.rdns === saved || x.name === saved);
+  if (!w) return;
+  try {
+    const accs = (await w.provider.request({ method: 'eth_accounts' })) as Address[];
+    if (accs[0]) attach(w, accs[0]);
+  } catch {}
 }
 
 /** Test-only keys of the local Hardhat fork (public, well known, worthless). Never used on X Layer. */
@@ -90,15 +143,9 @@ export function useForkActor(i: number) {
 
 export async function connect(w: Discovered) {
   const accs = (await w.provider.request({ method: 'eth_requestAccounts' })) as Address[];
-  activeProvider = w.provider;
-  walletClient = createWalletClient({ chain, transport: custom(w.provider), account: accs[0] });
-  account.value = accs[0];
-  walletName.value = w.name;
-  (w.provider as any).on?.('accountsChanged', (a: Address[]) => {
-    account.value = a[0] ?? null;
-    if (a[0]) walletClient = createWalletClient({ chain, transport: custom(w.provider), account: a[0] });
-  });
-  try { localStorage.setItem('lk.wallet', w.name); } catch {}
+  if (!accs?.[0]) throw new Error('The wallet did not share an account.');
+  attach(w, accs[0]);
+  try { localStorage.setItem('lk.wallet', w.rdns || w.name); } catch {}
 }
 
 export function disconnect() {
@@ -106,6 +153,7 @@ export function disconnect() {
   activeProvider = null;
   account.value = null;
   walletName.value = '';
+  walletIcon.value = '';
   try { localStorage.removeItem('lk.wallet'); sessionStorage.removeItem('lk.actor'); } catch {}
 }
 
