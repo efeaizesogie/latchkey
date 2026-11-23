@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { parseUnits, isAddress, getAddress, type Address, type Hash } from 'viem';
 import { account, send, sendValue, explain, same, short, chainNow, forkSkip, type TxStage } from '../lib/chain';
 import { vaultAbi, erc20Abi } from '../lib/abi';
-import { net, dep, isFork, explorerAddr, WINDOWS, GRACES, ZERO, type Token } from '../lib/config';
+import { net, dep, isRehearsal as isFork, isTestnet, explorerAddr, WINDOWS, GRACES, ZERO, type Token } from '../lib/config';
 import { loadVault, duration, windowLabel, fmt, heraldNotices, resolveInbox, type VaultView, type Notice } from '../lib/vault';
 import { Bit, Ring, Qr, Copy, Err, TxNote, useNow } from '../ui';
 import { picker } from '../app';
@@ -170,7 +170,7 @@ export function VaultPage({ address }: { address: Address }) {
             <div style={{ display: 'grid', placeItems: 'center' }}><Bit on big /></div>
             <h2>{isHeir ? (funded.length ? 'This vault is yours to claim.' : 'Claimed. It’s all in your wallet.') : 'The latch has tripped.'}</h2>
             <p class="muted">
-              Tripped {duration(now - v.trippedAt)} ago by its TapeOut circuit. It cannot be reopened.{' '}
+              Tripped {duration(now - v.trippedAt)} ago by its {isTestnet ? 'circuit' : 'TapeOut circuit'}. It cannot be reopened.{' '}
               {isHeir ? '' : `Only ${short(v.heir)} can claim.`}
             </p>
             {isHeir && (
@@ -386,7 +386,7 @@ function ics(v: VaultView) {
 
 function Share({ v }: { v: VaultView }) {
   const link = location.href.split('?')[0];
-  const onchain = dep ? `tape://${dep.tapeName}/#/v/${v.address}` : '';
+  const onchain = dep?.tapeName ? `tape://${dep.tapeName}/#/v/${v.address}` : '';
   const a = useRef<HTMLAnchorElement>(null);
   return (
     <div id="share" class="card stack" style={{ '--gap': '14px' } as any}>

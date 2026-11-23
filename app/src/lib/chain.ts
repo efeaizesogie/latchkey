@@ -12,7 +12,7 @@ import {
   type WalletClient,
   type EIP1193Provider,
 } from 'viem';
-import { net, isFork } from './config';
+import { net, isRehearsal } from './config';
 
 export const chain = defineChain({
   id: net.chainId,
@@ -125,7 +125,7 @@ const TEST_MNEMONIC = 'test test test test test test test test test test test ju
 type Actor = { name: string; account: any };
 export const FORK_ACTORS: Actor[] = [];
 export const forkReady: Promise<void> =
-  __FORK_BUILD__ && isFork
+  __FORK_BUILD__ && isRehearsal
     ? import('viem/accounts').then(({ mnemonicToAccount }) => {
         ['Ada (owner)', 'Tobi (heir)', 'Stranger', 'Gus (guardian)', 'Gia (guardian)'].forEach((name, i) => FORK_ACTORS.push({ name, account: mnemonicToAccount(TEST_MNEMONIC, { addressIndex: i }) }));
       })
@@ -241,6 +241,7 @@ const PLAIN: Record<string, string> = {
   BadAddress: 'That address can’t be used here (empty, repeated, or already the owner or receiver).',
   CircuitFailed: 'The TapeOut circuit did not answer as expected. Nothing changed.',
   SetupFee: 'The setup fee was not included.',
+  TooSoon: 'You already took test dollars this hour. Try again later.',
 };
 
 /** Turn any wallet / RPC / revert error into one plain sentence. */
@@ -273,7 +274,7 @@ export const same = (a?: string | null, b?: string | null) => !!a && !!b && a.to
 
 /** Fork only: move the local chain's clock forward (demo rehearsal). */
 export async function forkSkip(seconds: number) {
-  if (!isFork) return;
+  if (!isRehearsal) return;
   await pub.request({ method: 'evm_increaseTime' as any, params: [seconds] as any });
   await pub.request({ method: 'evm_mine' as any, params: [] as any });
 }

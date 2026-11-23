@@ -1,9 +1,10 @@
 import { useEffect } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import { Mark } from './ui';
-import { net, isFork, dep } from './lib/config';
+import { net, isRehearsal as isFork, dep } from './lib/config';
 import { account, short, forkReady, useForkActor, walletName } from './lib/chain';
 import { ConnectModal, picker } from './Connect';
+import { NetSwitch, NetBanner } from './NetBar';
 import { Landing } from './pages/Landing';
 import { Create } from './pages/Create';
 import { VaultPage } from './pages/Vault';
@@ -50,15 +51,16 @@ export function App() {
           <a class="brand" href="#/" aria-label="Latchkey home"><Mark /> Latchkey</a>
           <div class="row">
             <a class="navlink" href="#/start">How to use</a>
-            <span class="netpill" title={net.name}>{isFork ? 'fork' : 'X Layer'}</span>
+            <NetSwitch />
             <WalletButton />
           </div>
         </div>
       </header>
+      <NetBanner />
       <main>{page}</main>
       <footer class="foot">
         <div class="shell spread" style={{ flexWrap: 'wrap' }}>
-          <span>Latchkey · self-custodial · no admin over funds · {dep ? <span class="mono">{dep.tapeName}</span> : 'X Layer'}</span>
+          <span>Latchkey · self-custodial · no admin over funds · {dep?.tapeName ? <span class="mono">{dep.tapeName}</span> : net.name}</span>
           <span class="row wrap"><a href="#/start">How to use</a><a href="#/proof">How the latch works</a><a href="#/stats">On-chain stats</a><a href="#/mine">My vaults</a></span>
         </div>
       </footer>

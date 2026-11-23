@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { createPublicClient, http, type Hex } from 'viem';
-import { net, dep, circuitId, explorerAddr } from '../lib/config';
+import { net, dep, circuitId, explorerAddr, hasHerald, isTestnet } from '../lib/config';
 import { chain, short } from '../lib/chain';
 import { processorAbi } from '../lib/abi';
 import { circuitInfo, heraldNotices } from '../lib/vault';
@@ -166,11 +166,12 @@ export function Proof() {
               <dt>Pins</dt><dd>{latchInfo.nIn} in · {latchInfo.nOut} out · {latchInfo.nState} state bits</dd>
               <dt>Gates</dt><dd>{latchInfo.gates} (own NANDs and LATCHes, plus MAJ3’s {majInfo ? majInfo.gates : '…'} by REF)</dd>
               <dt>Held by</dt><dd class="mono">{latchInfo.owner ? short(latchInfo.owner) : '…'}{latchInfo.owner && dep.herald && latchInfo.owner.toLowerCase() === dep.herald.toLowerCase() ? ' (Latchkey herald)' : ''}</dd>
-              <dt>Its container</dt><dd class="mono">{short(dep.container)}</dd>
+              {hasHerald && <><dt>Its container</dt><dd class="mono">{short(dep.container)}</dd>
               <dt>Website</dt><dd class="mono">tape://{dep.tapeName}</dd>
-              <dt>TapeSend messages</dt><dd>{sent ?? '…'} sent by this container</dd>
+              <dt>TapeSend messages</dt><dd>{sent ?? '…'} sent by this container</dd></>}
             </dl>
-            <p class="meta">One container, three roles: it is the chip’s wallet, this website’s home on DeWEB, and the address Latchkey’s TapeSend notices come from.</p>
+            {hasHerald && <p class="meta">One container, three roles: it is the chip’s wallet, this website’s home on DeWEB, and the address Latchkey’s TapeSend notices come from.</p>}
+            {isTestnet && <p class="note">On testnet, TapeOut isn’t deployed, so these exact netlists run on Latchkey’s own TAP-02 evaluator. Our tests check it against TapeOut’s real processor on all 256 rows. On mainnet, the circuits run on TapeOut itself, with TapeSend notices and the DeWEB site.</p>}
             <p class="meta">Netlist, {(latchInfo.netlist.length - 2) / 2} bytes (TAP-02):</p>
             <ul class="list mono" style={{ fontSize: '12.5px' }}>{decode(latchInfo.netlist).map((l) => <li>{l}</li>)}</ul>
           </div>

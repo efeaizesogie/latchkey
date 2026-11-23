@@ -283,9 +283,27 @@ p { margin: 0; }
 
 .navlink { font-size: 14px; color: var(--ink-2); text-decoration: none; padding: 8px 4px; }
 .navlink:hover { color: var(--ink); }
-@media (max-width: 420px) { .netpill { display: none; } }
+
 
 .wait-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--hair); font-size: 14px; color: var(--ink-2); }
 .wait-row span:nth-child(2) { flex: 1 1 180px; }
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--hair-hi); border-top-color: var(--brass); animation: spin .8s linear infinite; flex: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* network switch + banner */
+.netswitch { position: relative; }
+.netswitch .netpill { cursor: pointer; background: transparent; display: inline-flex; gap: 6px; align-items: center; min-height: 32px; }
+.netswitch .netpill:hover { color: var(--ink-2); border-color: var(--hair-hi); }
+.netpill.is-test { color: var(--brass); border-color: rgba(233,180,76,.45); }
+.netmenu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: 240px; background: var(--card); border: 1px solid var(--hair-hi); border-radius: 14px; padding: 6px; box-shadow: 0 20px 40px -12px rgba(0,0,0,.6); display: grid; gap: 2px; }
+.netmenu button { text-align: left; border: 0; background: transparent; border-radius: 10px; padding: 10px 12px; cursor: pointer; display: grid; gap: 2px; color: var(--ink); font-size: 14px; }
+.netmenu button:hover:not([disabled]) { background: var(--raised); }
+.netmenu button[disabled] { opacity: .45; cursor: not-allowed; }
+.netmenu small { color: var(--ink-3); font-size: 12px; }
+.tick-mark { color: var(--brass); }
+.netbanner { border-bottom: 1px solid var(--hair); background: rgba(255,255,255,.02); font-size: 14px; color: var(--ink-2); }
+.netbanner.is-test { background: rgba(233,180,76,.07); border-bottom-color: rgba(233,180,76,.25); }
+.netbanner__row { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding-block: 10px; }
+.netbanner__row > span:first-child { flex: 1 1 260px; }
+.netbanner b { color: var(--ink); font-weight: 500; }
+@media (max-width: 420px) { .navlink { display: none; } }

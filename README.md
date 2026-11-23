@@ -39,6 +39,29 @@ Built for **X Layer TapeOut Accelerate** (Oct 16 – Dec 7, 2026). Everything in
 | LatchkeyFactory / LatchkeyHerald | _filled after deploy_ |
 | DeWEB | _`<id>.2.272.tape` after publish_ |
 
+## Testnet (free, for anyone and for judges)
+
+TapeOut, TapeSend and DeWEB exist only on X Layer mainnet. So that anyone can try Latchkey without money, the same
+contracts also run on **X Layer testnet (chain 1952)**:
+
+- `contracts/contracts/testnet/Tap02Processor.sol` stands in for a TapeOut processor. It stores the same TAP-02
+  netlists and evaluates them (NAND, LATCH, REF, TAP-02 bit packing) behind the same `step()` interface.
+  `test/testnet.test.js` checks it against TapeOut's real OrderGuard processor on a mainnet fork, on all 256 rows
+  of the latch plus packing edge cases, and runs the unchanged vault end to end on it.
+- `LatchkeyFactory` / `LatchkeyVault` are byte-for-byte the mainnet contracts. There is no herald on testnet,
+  so no TapeSend notices, and the setup fee is 0.
+- `TestUSD` (tUSDT0) gives anyone 1,000 test dollars per hour.
+- In the app, the header's network switch picks **Testnet**: a banner links the official OKB faucet
+  (web3.okx.com/xlayer/faucet) and has a "Get 1,000 tUSDT0" button. Testnet also offers 3-minute windows and
+  1-minute grace periods, so a latch can be watched tripping in minutes.
+
+```bash
+cd contracts
+node scripts/testnet-wallet.js                                   # makes a testnet-only deployer (key in .env.testnet)
+# fund the printed address from https://web3.okx.com/xlayer/faucet, then:
+npx hardhat run scripts/deploy-testnet.js --network xlayerTestnet  # about 0.01 test OKB
+```
+
 ## Repository
 
 ```

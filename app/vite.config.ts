@@ -14,6 +14,9 @@ export default defineConfig({
   define: {
     __FORK_BUILD__: JSON.stringify(process.env.LK_ONCHAIN !== '1'),
     __XLAYER_DEPLOYMENT__: JSON.stringify(dep('xlayer.json')),
+    // LK_TESTNET_LOCAL=1 (dev only): rehearse the testnet experience against contracts on the local node
+    __TESTNET_DEPLOYMENT__: JSON.stringify(process.env.LK_TESTNET_LOCAL === '1' && process.env.LK_ONCHAIN !== '1' ? dep('testnet-local.json') : dep('testnet.json')),
+    __TESTNET_LOCAL__: JSON.stringify(process.env.LK_TESTNET_LOCAL === '1' && process.env.LK_ONCHAIN !== '1'),
     __FORK_DEPLOYMENT__: JSON.stringify(process.env.LK_ONCHAIN === '1' ? null : dep('fork.json')),
   },
   build: { assetsInlineLimit: 100_000_000, cssCodeSplit: false, target: 'es2020' },

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
-import { net, isFork } from './lib/config';
+import { net, isRehearsal as isFork } from './lib/config';
 import { account, wallets, walletsScanned, connect, disconnect, short, FORK_ACTORS, useForkActor, walletName, walletIcon, walletLinks, explain, waiting } from './lib/chain';
 import { myVaults } from './lib/vault';
 import type { Address } from 'viem';

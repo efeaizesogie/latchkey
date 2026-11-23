@@ -34,7 +34,7 @@ export function Stats() {
             <dt>USDT0 protected</dt><dd class="num">{s ? fmt(s.usdt0, 6, 2) : '…'}</dd>
             <dt>OKB protected</dt><dd class="num">{s ? fmt(s.okb, 18) : '…'}</dd>
             <dt>Factory</dt><dd>{explorerAddr(dep.factory) ? <a class="mono" href={explorerAddr(dep.factory)} target="_blank" rel="noreferrer">{short(dep.factory)}</a> : <span class="mono">{short(dep.factory)}</span>}</dd>
-            <dt>Herald</dt><dd class="mono">{short(dep.herald)}</dd>
+            {dep.herald !== '0x0000000000000000000000000000000000000000' && <><dt>Herald</dt><dd class="mono">{short(dep.herald)}</dd></>}
           </dl>
           {s && s.count > s.sampled && <p class="meta" style={{ marginTop: '10px' }}>Totals cover the first {s.sampled} vaults.</p>}
         </div>

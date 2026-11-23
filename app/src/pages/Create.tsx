@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { isAddress, getAddress, parseEther, decodeEventLog, type Address, type Hash } from 'viem';
 import { account, send, explain, same, short, type TxStage } from '../lib/chain';
-import { net, dep, WINDOWS, GRACES, DEMO_WINDOW, DEMO_GRACE, isFork, ZERO } from '../lib/config';
+import { net, dep, WINDOWS, GRACES, DEMO_WINDOW, DEMO_GRACE, isFork, isTestnet, ZERO } from '../lib/config';
 import { factoryAbi } from '../lib/abi';
 import { factoryInfo, fmt, windowLabel, resolveInbox } from '../lib/vault';
 import { Err, TxNote } from '../ui';
@@ -52,7 +52,7 @@ export function Create() {
   const [err, setErr] = useState<string | null>(null);
   const heirInbox = useInbox();
   const ownerInbox = useInbox();
-  const demo = isFork || new URLSearchParams(location.search).has('demo');
+  const demo = isFork || isTestnet || new URLSearchParams(location.search).has('demo');
   const windows = demo ? [DEMO_WINDOW, ...WINDOWS] : WINDOWS;
   const graces = demo ? [DEMO_GRACE, ...GRACES] : GRACES;
 

@@ -9,10 +9,12 @@ export type Deployment = {
   tapeName: string;
   chainId?: number;
   token?: Address;
+  processor?: Address;
+  processorName?: string;
 };
 
 export type Net = {
-  key: 'xlayer' | 'fork';
+  key: 'xlayer' | 'testnet' | 'fork';
   chainId: number;
   name: string;
   /** Read nodes. On X Layer these are TapeKit's default nodes (two operators), so reads are allowed on the DeWEB gateway. */
@@ -47,6 +49,8 @@ const TAPEOUT = {
 
 declare const __FORK_DEPLOYMENT__: Deployment | null;
 declare const __XLAYER_DEPLOYMENT__: Deployment | null;
+declare const __TESTNET_DEPLOYMENT__: Deployment | null;
+declare const __TESTNET_LOCAL__: boolean;
 declare const __FORK_BUILD__: boolean;
 
 export const NETS: Record<Net['key'], Net> = {
@@ -60,6 +64,19 @@ export const NETS: Record<Net['key'], Net> = {
     dep: typeof __XLAYER_DEPLOYMENT__ !== 'undefined' ? __XLAYER_DEPLOYMENT__ : null,
     tokens: XLAYER_TOKENS,
   },
+  testnet: {
+    key: 'testnet',
+    chainId: typeof __TESTNET_LOCAL__ !== 'undefined' && __TESTNET_LOCAL__ ? 196 : 1952,
+    name: 'X Layer testnet',
+    rpcs: typeof __TESTNET_LOCAL__ !== 'undefined' && __TESTNET_LOCAL__ ? ['http://127.0.0.1:' + '8545'] : ['https://testrpc.xlayer.tech', 'https://xlayer-testnet.drpc.org'],
+    explorer: 'https://web3.okx.com/explorer/x-layer-testnet',
+    ...TAPEOUT,
+    // TapeOut is mainnet only: testnet runs the same circuits on Latchkey's TAP-02 evaluator (see contracts/testnet)
+    processor: (typeof __TESTNET_DEPLOYMENT__ !== 'undefined' && __TESTNET_DEPLOYMENT__?.processor) || TAPEOUT.processor,
+    processorName: 'Latchkey TAP-02 evaluator',
+    dep: typeof __TESTNET_DEPLOYMENT__ !== 'undefined' ? __TESTNET_DEPLOYMENT__ : null,
+    tokens: XLAYER_TOKENS,
+  },
   fork: {
     key: 'fork',
     chainId: (typeof __FORK_DEPLOYMENT__ !== 'undefined' && __FORK_DEPLOYMENT__?.chainId) || 196,
@@ -71,17 +88,37 @@ export const NETS: Record<Net['key'], Net> = {
     tokens: XLAYER_TOKENS,
   },
 };
+if (NETS.testnet.dep?.token) NETS.testnet.tokens = [{ symbol: 'tUSDT0', address: NETS.testnet.dep.token, decimals: 6, note: 'free test dollars' }, OKB];
 if (NETS.fork.dep?.token) NETS.fork.tokens = [{ symbol: 'USDT0', address: NETS.fork.dep.token, decimals: 6, note: 'test token on the fork' }, OKB];
 
+const NET_KEY = 'lk.net';
 function pickNet(): Net {
   const q = new URLSearchParams(location.search);
   const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  const want = q.get('net') ?? (local ? 'fork' : 'xlayer');
-  return want === 'fork' && NETS.fork.dep ? NETS.fork : NETS.xlayer;
+  let saved: string | null = null;
+  try { saved = localStorage.getItem(NET_KEY); } catch {}
+  const want = q.get('net') ?? saved ?? (local ? 'fork' : NETS.xlayer.dep ? 'xlayer' : NETS.testnet.dep ? 'testnet' : 'xlayer');
+  if (want === 'fork' && NETS.fork.dep) return NETS.fork;
+  if (want === 'testnet' && NETS.testnet.dep) return NETS.testnet;
+  return NETS.xlayer;
+}
+
+/** Switch network: remembered in this browser, then reload (every client and address depends on it). */
+export function switchNet(key: Net['key']) {
+  try { localStorage.setItem(NET_KEY, key); } catch {}
+  const u = new URL(location.href);
+  u.searchParams.set('net', key);
+  location.replace(u.toString());
 }
 
 export const net = pickNet();
 export const isFork = net.key === 'fork';
+export const isTestnet = net.key === 'testnet';
+/** Local rehearsal (fork, or testnet contracts on the local node): test people and clock tools are available. */
+export const isRehearsal = isFork || (typeof __TESTNET_LOCAL__ !== 'undefined' && __TESTNET_LOCAL__ && isTestnet);
+/** TapeSend notices and the DeWEB site exist only where Latchkey's herald is deployed (mainnet and the fork). */
+export const hasHerald = !!net.dep && net.dep.herald !== ZERO;
+export const FAUCET_URL = 'https://web3.okx.com/xlayer/faucet';
 export const dep = net.dep;
 export const circuitId = dep ? BigInt(dep.circuitId) : null;
 

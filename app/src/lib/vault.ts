@@ -2,7 +2,7 @@ import type { Address, Hex } from 'viem';
 import { formatUnits, keccak256, concat, hexToBytes } from 'viem';
 import { pub, readAgreed, type Agreement } from './chain';
 import { vaultAbi, erc20Abi, factoryAbi, processorAbi, heraldAbi, hubAbi, openerAbi, cpuFactoryAbi } from './abi';
-import { net, dep, circuitId, type Token, ZERO } from './config';
+import { net, dep, circuitId, hasHerald, type Token, ZERO } from './config';
 
 export type BeatRecord = { blockNumber: bigint; time: bigint; stateBefore: number; inputs: number; stateAfter: number };
 export type Phase = 'open' | 'grace' | 'tripped';
@@ -136,7 +136,7 @@ export const endpointOf = (container: Address): Hex =>
  * the payload comes from the Sent event in that one block and is checked against the digest (TAP-10 §13).
  */
 export async function heraldNotices(limit = 12): Promise<{ total: number; notices: Notice[] }> {
-  if (!dep) return { total: 0, notices: [] };
+  if (!dep || !hasHerald) return { total: 0, notices: [] };
   const total = Number(await pub.readContract({ address: net.hub, abi: hubAbi, functionName: 'outboxCount', args: [dep.container] }));
   if (!total) return { total, notices: [] };
   const start = Math.max(0, total - limit);
@@ -192,7 +192,7 @@ export async function stats() {
     beats += Number(s[9]);
     okb += s[10] as bigint;
   }
-  const sent = Number(await pub.readContract({ address: dep.herald, abi: heraldAbi, functionName: 'sent' }).catch(() => 0n));
+  const sent = !hasHerald ? 0 : Number(await pub.readContract({ address: dep.herald, abi: heraldAbi, functionName: 'sent' }).catch(() => 0n));
   return { count, open, grace, tripped, beats, okb, usdt0: usd.reduce((x, y) => x + (y as bigint), 0n), sent, sampled: addrs.length };
 }
 
