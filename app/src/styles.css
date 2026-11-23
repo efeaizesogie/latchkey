@@ -273,7 +273,9 @@ p { margin: 0; }
 
 /* ---------- guide ---------- */
 .role-tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--raised); border-radius: var(--r-pill); padding: 4px; gap: 2px; }
-.role-tabs button { border: 0; background: transparent; min-height: 44px; border-radius: var(--r-pill); cursor: pointer; color: var(--ink-2); font-size: 14px; padding: 0 8px; }
+.role-tabs button { border: 0; background: transparent; min-height: 44px; border-radius: var(--r-pill); cursor: pointer; color: var(--ink-2); font-size: 14px; padding: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.role-tabs .t-short { display: none; }
+@media (max-width: 560px) { .role-tabs .t-long { display: none; } .role-tabs .t-short { display: inline; } .role-tabs button { font-size: 15px; } }
 .role-tabs button[aria-selected='true'] { background: var(--canvas); color: var(--ink); }
 .guide-steps { list-style: none; margin: 0; padding: 0; counter-reset: g; display: grid; gap: 12px; }
 .guide-steps li { counter-increment: g; display: grid; grid-template-columns: 40px 1fr; gap: 14px; background: var(--card); border: 1px solid var(--hair); border-radius: var(--r-card); padding: 18px; }
@@ -306,4 +308,35 @@ p { margin: 0; }
 .netbanner__row { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding-block: 10px; }
 .netbanner__row > span:first-child { flex: 1 1 260px; }
 .netbanner b { color: var(--ink); font-weight: 500; }
-@media (max-width: 420px) { .navlink { display: none; } }
+
+/* guide + checklist rhythm on small screens */
+.checklist__body p.later { color: var(--ink-3); font-size: 14px; }
+@media (max-width: 560px) {
+  .checklist { padding: 18px 14px; gap: 12px; }
+  .checklist__steps li { grid-template-columns: 26px 1fr; gap: 10px; padding: 10px 6px; }
+  .checklist__mark { width: 24px; height: 24px; font-size: 11px; }
+  .checklist__body p { font-size: 14.5px; line-height: 1.45; }
+  .guide-steps li { grid-template-columns: 28px 1fr; gap: 10px; padding: 16px 14px; }
+}
+
+/* header: compact controls on phones */
+.navlink { white-space: nowrap; display: inline-flex; align-items: center; }
+.navlink__icon { display: none; }
+.addr-short { display: none; }
+@media (max-width: 560px) {
+  .top .shell { gap: 8px; }
+  .top .row { gap: 6px; }
+  .navlink__full { display: none; }
+  .navlink__icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--hair-hi); font-size: 15px; color: var(--ink-2); }
+  .navlink { padding: 0; }
+  .netswitch .netpill { padding: 3px 9px; }
+  .top .btn.small { padding: 0 12px; }
+}
+@media (max-width: 400px) {
+  .addr-long { display: none; }
+  .addr-short { display: inline; }
+  .brand { font-size: 16px; gap: 8px; }
+  .navlink__icon { width: 32px; height: 32px; }
+  .netswitch .netpill { padding: 3px 8px; gap: 4px; }
+  .top .btn.small { padding: 0 10px; }
+}

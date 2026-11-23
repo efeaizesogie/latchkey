@@ -6,6 +6,8 @@ type Props = {
   /** what the button for the current step does */
   actions: Partial<Record<StepKey, { label: string; run: () => void }>>;
   compact?: boolean;
+  /** show what every remaining step means (the guide), not only the current one */
+  explainAll?: boolean;
   onDismiss?: () => void;
 };
 
@@ -19,7 +21,7 @@ export function focusSection(id: string) {
   el.classList.add('spotlight');
 }
 
-export function Checklist({ steps, title = 'Getting started', actions, compact, onDismiss }: Props) {
+export function Checklist({ steps, title = 'Getting started', actions, compact, explainAll, onDismiss }: Props) {
   const done = steps.filter((s) => s.done).length;
   const current = steps.find((s) => !s.done);
   if (!current) return null;
@@ -42,7 +44,7 @@ export function Checklist({ steps, title = 'Getting started', actions, compact, 
               <span class="checklist__mark" aria-hidden="true">{s.done ? '✓' : i + 1}</span>
               <div class="checklist__body">
                 <b>{s.title}{s.done && <span class="sr-only"> (done)</span>}</b>
-                {isCurrent && !compact && <p>{s.body}</p>}
+                {!compact && (isCurrent || (explainAll && !s.done)) && <p class={isCurrent ? '' : 'later'}>{s.body}</p>}
                 {isCurrent && a && <button class="btn small primary" onClick={a.run}>{a.label} <span aria-hidden="true">→</span></button>}
               </div>
             </li>

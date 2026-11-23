@@ -61,8 +61,8 @@ export function Guide() {
         <p class="muted">Pick what brings you here. Each path is a few short steps, and nothing needs us in the middle.</p>
 
         <div class="role-tabs" role="tablist" aria-label="Your role">
-          {([['owner', 'Protect my crypto'], ['receiver', 'I was named receiver'], ['guardian', 'I’m a guardian']] as const).map(([k, label]) => (
-            <button role="tab" aria-selected={role === k} onClick={() => setRole(k)}>{label}</button>
+          {([['owner', 'Protect my crypto', 'Owner'], ['receiver', 'I was named receiver', 'Receiver'], ['guardian', 'I’m a guardian', 'Guardian']] as const).map(([k, label, shortLabel]) => (
+            <button role="tab" aria-selected={role === k} onClick={() => setRole(k)} aria-label={label}><span class="t-long">{label}</span><span class="t-short" aria-hidden="true">{shortLabel}</span></button>
           ))}
         </div>
 
@@ -75,11 +75,8 @@ export function Guide() {
                 <div><a class="btn small primary" href={`#/v/${latest.address}`}>Open my vault →</a></div>
               </div>
             ) : (
-              <Checklist steps={steps} title={latest ? 'Your vault, step by step' : 'Set up in about a minute'} actions={ownerActions(latest)} />
+              <Checklist steps={steps} title={latest ? 'Your vault, step by step' : 'Set up in about a minute'} actions={ownerActions(latest)} explainAll />
             )}
-            <ol class="guide-steps" aria-label="What each step means">
-              {steps.map((s) => <li><div><b>{s.title}</b><p>{s.body}</p></div></li>)}
-            </ol>
             <div class="card line stack" style={{ '--gap': '10px' } as any}>
               <h3>Good to know</h3>
               <p class="muted">While the latch is open, only you can move funds, and you can withdraw everything at any time. A check-in during a grace period cancels it. Once the latch trips it can never be undone, so pick a window you can keep.</p>

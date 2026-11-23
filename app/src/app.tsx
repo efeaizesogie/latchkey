@@ -26,7 +26,7 @@ function WalletButton() {
   const a = account.value;
   return (
     <button class={`btn small ${a ? 'quiet' : ''}`} onClick={() => (picker.value = true)} aria-haspopup="dialog" title={a ? walletName.value : undefined}>
-      {a ? <span class="mono">{short(a)}</span> : 'Connect'}
+      {a ? <span class="mono"><span class="addr-long">{short(a)}</span><span class="addr-short">{a.slice(0, 4)}…{a.slice(-4)}</span></span> : 'Connect'}
     </button>
   );
 }
@@ -50,7 +50,7 @@ export function App() {
         <div class="shell">
           <a class="brand" href="#/" aria-label="Latchkey home"><Mark /> Latchkey</a>
           <div class="row">
-            <a class="navlink" href="#/start">How to use</a>
+            <a class="navlink" href="#/start" aria-label="How to use Latchkey"><span class="navlink__full">How to use</span><span class="navlink__icon" aria-hidden="true">?</span></a>
             <NetSwitch />
             <WalletButton />
           </div>
