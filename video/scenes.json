@@ -1,0 +1,72 @@
+[
+ {
+  "id": "s01-hook",
+  "kind": "title",
+  "head": "About 20% of all bitcoin [is lost.]",
+  "sub": "Lost phones. Lost seed phrases. No plan for family.",
+  "vo": "Lose your phone, or your seed phrase, and your crypto is gone. Pass away without a plan, and your family never sees it. About a fifth of all bitcoin is already lost this way."
+ },
+ {
+  "id": "s02-landing",
+  "kind": "app",
+  "head": "A vault [with a latch.]",
+  "sub": "Check in now and then. Go quiet, and it opens for the address you named.",
+  "vo": "Latchkey is a vault with a latch. You check in now and then. If you go quiet for too long, it opens for the address you named: your own backup wallet, or the person you love."
+ },
+ {
+  "id": "s03-create",
+  "kind": "app",
+  "head": "Set it up [in a minute.]",
+  "sub": "Receiver, silence window, grace period, up to three guardians.",
+  "vo": "Setting one up takes a minute. Name who it opens for, how long a silence means something is wrong, a grace period, and up to three guardians. Then fund it from any wallet. You keep the keys, and you can take everything back while it's open."
+ },
+ {
+  "id": "s04-checkin",
+  "kind": "app",
+  "head": "One tap: [I’m still here.]",
+  "sub": "Every check-in is one beat of a TapeOut circuit on X Layer.",
+  "vo": "Checking in is one tap. Every check-in is a beat of a TapeOut circuit on X Layer, and the vault keeps each beat on chain."
+ },
+ {
+  "id": "s05-proof",
+  "kind": "app",
+  "head": "The latch [is a chip.]",
+  "sub": "18 NAND + 2 LATCH, built by REF on a 2-of-3 guardian circuit.",
+  "vo": "The latch isn't a flag in our database. It's a circuit taped out on TapeOut: two latch bits and eighteen NAND gates, built by REF on top of a second circuit that counts guardian votes. Your browser checks all two hundred and fifty six cases against the processor, live. Once it trips, it can never be undone."
+ },
+ {
+  "id": "s06-quiet",
+  "kind": "app",
+  "head": "Go quiet, [and it opens.]",
+  "sub": "Grace period, TapeSend notice, two guardians confirm, the bit flips.",
+  "vo": "Now I stop checking in. When the window runs out, anyone can start the grace period, and Latchkey's herald sends a TapeSend message from its own container. Two guardians confirm. The circuit flips the bit, and my heir gets a TapeSend message of their own."
+ },
+ {
+  "id": "s07-claim",
+  "kind": "app",
+  "head": "Your heir [claims.]",
+  "sub": "Only the named wallet. No company, no keeper, no paperwork.",
+  "vo": "My heir connects the wallet I named, and claims everything to their own wallet. No company, no keeper, no paperwork."
+ },
+ {
+  "id": "s08-outlive",
+  "kind": "app",
+  "head": "Built to [outlive us.]",
+  "sub": "No admin over funds. Notices on TapeSend. The app itself on DeWEB.",
+  "vo": "Inheritance apps are companies, and companies shut down. Latchkey has no admin over your funds, its notices travel over TapeSend, and the app itself is one file stored on X Layer DeWEB, served from its own dot tape name. It can't disappear before you do."
+ },
+ {
+  "id": "s09-business",
+  "kind": "app",
+  "head": "Free to start. [Paid when it matters.]",
+  "sub": "0.001 OKB setup · 0.2% at claim · optional watchtower reminders.",
+  "vo": "Setup costs a thousandth of an OKB, about ten cents, and Latchkey takes zero point two percent only when a vault pays out. An optional watchtower adds reminders. We're starting with the eighty percent of Nigerian crypto users who save in dollars."
+ },
+ {
+  "id": "s10-end",
+  "kind": "title",
+  "head": "Latchkey",
+  "sub": "Try it free on X Layer testnet · efeaizesogie.github.io/latchkey",
+  "vo": "Latchkey. Try it free on X Layer testnet today."
+ }
+]

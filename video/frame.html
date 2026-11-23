@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face { font-family: 'Archivo'; src: url('out/archivo-112.woff2') format('woff2'); font-weight: 400 600; font-stretch: 112%; }
+  @font-face { font-family: 'Geist'; src: url('out/geist.woff2') format('woff2'); font-weight: 100 900; }
+  @font-face { font-family: 'Geist Mono'; src: url('out/geist-mono.woff2') format('woff2'); font-weight: 100 900; }
+  :root { --ink: #ececf2; --ink2: #b9b9c6; --ink3: #8a8a9a; --brass: #e9b44c; --canvas: #15151d; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  body.bg { background: var(--canvas); }
+  .photo { position: absolute; inset: -40px; background: url('out/ridges.webp') center 40% / cover; filter: blur(2px) saturate(1.05); }
+  .shade { position: absolute; inset: 0; background:
+      linear-gradient(90deg, rgba(21,21,29,.96) 0%, rgba(21,21,29,.86) 46%, rgba(21,21,29,.55) 75%, rgba(21,21,29,.7) 100%),
+      linear-gradient(180deg, rgba(21,21,29,.2), rgba(21,21,29,.85)); }
+  .left { position: absolute; left: 150px; top: 0; bottom: 0; width: 820px; display: flex; flex-direction: column; justify-content: center; gap: 30px; }
+  .brand { display: flex; gap: 14px; align-items: center; font-family: 'Archivo'; font-stretch: 112%; font-size: 30px; color: var(--ink); position: absolute; left: 150px; top: 72px; }
+  .count { position: absolute; left: 150px; bottom: 74px; font-family: 'Geist Mono'; font-size: 22px; color: var(--ink3); }
+  .note { position: absolute; left: 290px; bottom: 74px; font-family: 'Geist'; font-size: 20px; line-height: 1.35; color: var(--ink3); max-width: 760px; }
+  h1 { margin: 0; font-family: 'Archivo'; font-stretch: 112%; font-weight: 500; font-size: 86px; line-height: 1.03; letter-spacing: -0.03em; color: var(--ink); }
+  h1 .dim { color: rgba(236,236,242,.5); }
+  p { margin: 0; font-family: 'Geist'; font-size: 34px; line-height: 1.4; color: var(--ink2); max-width: 760px; }
+  .bar { width: 72px; height: 4px; border-radius: 4px; background: var(--brass); }
+
+  /* phone: body.bezel renders only the frame (screen area transparent) */
+  .phone { position: absolute; left: 1196px; top: 62px; width: 458px; height: 956px; box-sizing: border-box; border-radius: 66px; border: 15px solid #1d1d26;
+           box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 0 0 1.5px #3a3a48; }
+  .island { position: absolute; left: calc(1196px + 229px - 62px); top: 84px; width: 124px; height: 34px; border-radius: 20px; background: #050507; }
+  .status { position: absolute; left: 1211px; top: 77px; width: 428px; height: 46px; background: #15151d; display: flex; align-items: center; justify-content: space-between; padding: 8px 30px 0 40px; box-sizing: border-box; font-family: 'Geist'; font-weight: 600; font-size: 17px; color: var(--ink); }
+  .status .icons { display: flex; gap: 4px; align-items: flex-end; }
+  .status .icons i { display: block; width: 4px; background: var(--ink); border-radius: 1px; }
+  .status .icons i:nth-child(1) { height: 6px; } .status .icons i:nth-child(2) { height: 9px; } .status .icons i:nth-child(3) { height: 12px; }
+  .status .icons b { display: block; width: 24px; height: 12px; border: 1.5px solid var(--ink); border-radius: 4px; margin-left: 6px; box-sizing: border-box; background: linear-gradient(90deg, var(--ink) 70%, transparent 70%) content-box; padding: 1.5px; }
+  .shadow { position: absolute; left: 1196px; top: 62px; width: 458px; height: 956px; border-radius: 66px; box-shadow: 0 60px 120px -20px rgba(0,0,0,.8); background: #0e0e14; }
+
+  /* title cards */
+  .title { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 34px; text-align: center; }
+  .title h1 { font-size: 112px; max-width: 1400px; }
+  .title p { font-size: 38px; max-width: 1200px; }
+  .bit { width: 120px; height: 120px; border-radius: 18px; background: var(--brass); color: #1a1407; display: grid; place-items: center; font-family: 'Geist Mono'; font-size: 70px; }
+</style>
+</head>
+<body>
+<script>
+  // ?mode=bg|bezel|title & head, sub, n, note
+  const q = new URLSearchParams(location.search);
+  const mode = q.get('mode');
+  const esc = (s) => (s || '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const mark = `<svg width="34" height="34" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="12" r="5.25" stroke="#ececf2" stroke-width="1.5"/><path d="M13.25 12H22" stroke="#ececf2" stroke-width="1.5"/><rect x="17" y="12.75" width="3.5" height="3.5" fill="#e9b44c"/></svg>`;
+  const head = esc(q.get('head')).replace(/\[(.+?)\]/g, '<span class="dim">$1</span>');
+  if (mode === 'bezel') {
+    document.body.innerHTML = `<div class="status"><span>9:41</span><span class="icons"><i></i><i></i><i></i><b></b></span></div><div class="phone"></div><div class="island"></div>`;
+  } else if (mode === 'title') {
+    document.body.className = 'bg';
+    document.body.innerHTML = `<div class="photo"></div><div class="shade" style="background:linear-gradient(180deg,rgba(21,21,29,.7),rgba(21,21,29,.92))"></div>
+      <div class="title">${q.get('bit') ? `<div class="bit">1</div>` : ''}<h1>${head}</h1><p>${esc(q.get('sub'))}</p></div>`;
+  } else {
+    document.body.className = 'bg';
+    document.body.innerHTML = `<div class="photo"></div><div class="shade"></div>
+      <div class="brand">${mark} Latchkey</div>
+      <div class="left"><div class="bar"></div><h1>${head}</h1><p>${esc(q.get('sub'))}</p></div>
+      <div class="count">${esc(q.get('n'))}</div>
+      ${q.get('note') ? `<div class="note">${esc(q.get('note'))}</div>` : ''}
+      <div class="shadow"></div>`;
+  }
+</script>
+</body>
+</html>

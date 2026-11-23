@@ -8,3 +8,5 @@ dist/
 *.log
 .DS_Store
 contracts/deployments/testnet-local.json
+video/out/
+video/node_modules/
