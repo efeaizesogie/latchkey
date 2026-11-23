@@ -1,75 +1,91 @@
 # Latchkey
 
-**A vault with a latch.** Check in now and then. If you go quiet for longer than you chose, a TapeOut circuit trips the latch, and everything in the vault goes to the address you named: your own backup wallet (lost phone, lost seed) or your heir.
+**A vault with a latch.** Check in now and then. If you go quiet for longer than you chose, a grace period starts and you get a TapeSend message. If you still don't check in (or two of your guardians confirm you are gone), a TapeOut circuit trips the latch, and everything in the vault goes to the address you named: your own backup wallet (lost phone, lost seed) or your heir.
 
 Built for **X Layer TapeOut Accelerate** (Oct 16 – Dec 7, 2026). Everything in this repository was built during the event (started 2026-11-19).
 
 - **Self-custodial.** You keep your keys. While the latch is open, only you can move funds.
-- **No company in the middle.** The factory has no owner, no setters and no upgrade path. The latch is a circuit taped out on TapeOut. The app is one HTML file stored on X Layer DeWEB in the circuit's own container. If we disappear, the vault still works from its `.tape` name.
-- **Decided by a circuit.** The latch bit can only change through `step()` on the TapeOut processor.
+- **No company in the middle.** The factory and vaults have no owner, no setters and no upgrade path. The state machine is a circuit taped out on TapeOut. Notices travel over TapeSend. The app is one HTML file stored on DeWEB in the circuit's own container. If we disappear, every vault still works from its `.tape` name.
+- **Decided by circuits.** A vault's state can only change through `step()` on the TapeOut processor.
 
-## How TapeOut is used
+## How Latchkey uses the TapeOut ecosystem
 
-| Piece | What it is |
+| Piece | How Latchkey uses it |
 |---|---|
-| Circuit | `circuit/latch.mjs`: a TAP-02 netlist of 4 NAND + 1 LATCH (32 bytes). Inputs `expired`, `alive`; state `q`; output `q' = q OR (expired AND NOT alive)`. Once 1, it stays 1 forever. |
-| Processor | Taped out on TapeOut's existing **OrderGuard** processor `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355` (X Layer, chain 196). |
-| Vault | `contracts/contracts/LatchkeyVault.sol`. Every check-in and every trip is one beat: `processor.step(circuitId, [latch], [expired, alive])`. The vault stores the new state the circuit returns and keeps every beat on chain (`history()`). |
-| ERC-6551 container + DeWEB | The circuit's container stores the app (`SiteRegistry.putFile` / `appendChunk`), activated as `<circuit>.2.272.tape` and served by TapeKit gateways (`https://<circuit>-2-272.tapekit.org/`). |
-| Proof page | `#/proof` in the app calls `step()` live for all 8 rows of the truth table and decodes the netlist read from the processor. |
+| **TapeOut circuits (TAP-02)** | Two circuits on TapeOut's existing **OrderGuard** processor (`0x57F3…A355`, X Layer). **MAJ3** (6 NAND): two of three guardians agree. **Latch** (18 NAND + 2 LATCH + a **REF** to MAJ3), the vault's state machine: `warn' = ¬q ∧ ¬alive ∧ (warn ∨ expired)`, `q' = q ∨ (¬alive ∧ warn ∧ (graceOver ∨ MAJ3(g0,g1,g2)))`. Built and checked on all 256 (state, input) rows by `circuit/latch.mjs`. |
+| **Processor `step()`** | Every check-in, poke and trip is one beat: `step(latchId, [warn, q], [expired, alive, graceOver, g0, g1, g2])`. The vault derives the six input bits from the clock and the guardians' on-chain confirmations, stores the state the circuit returns, and keeps every beat on chain (`history()`). |
+| **REF composition** | The latch includes MAJ3 by REF, TapeOut's way to build chips from other chips. Only the latch's own gates are burned at tape-out. |
+| **ERC-6551 container** | The latch circuit's container is Latchkey's on-chain identity: the website's home on DeWEB, and the sender of every TapeSend notice. Its NFT is held by `LatchkeyHerald`. |
+| **DeWEB + TapeKit** | The app is one self-contained file in the container (`SiteRegistry.putFile`/`appendChunk`), bound as `<latch id>.2.272.tape` and served by TapeKit gateways (`https://<id>-2-272.tapekit.org/`). It passes TapeKit's "100% on-chain" static rule (`app/scripts/check-onchain.mjs`, SPEC §8), and only reads TapeKit's default X Layer nodes. |
+| **TapeSend (TAP-10 messaging)** | `LatchkeyHerald` sends public TAP-10 messages from Latchkey's container via the DeWebHub: to the owner's inbox when a grace period starts (an on-chain watchtower), and to the heir's inbox when the latch trips. Inboxes are given as `.tape` names or container addresses and resolved per TAP-10 §4 (factory `cpuAt` + Opener `accountOf`). Without an inbox, the message goes to Latchkey's own inbox, a public feed. The app reads the hub's outbox and verifies each payload against its digest. |
+| **TAP-10 node agreement** | Vault snapshots are read from two independent operators' nodes at the same block and compared (`readAgreed`). |
+| **On-chain data** | `#/proof` asks the processor for all 256 rows live and decodes the netlist (including the REF). `#/stats` reads every vault from the factory, plus the herald's TapeSend feed. There is no database. |
 
-The deadline check (`block.timestamp >= lastCheckIn + window`) runs in the vault contract and enters the circuit as the `expired` bit, as the event FAQ allows ("logic may run outside circuits").
+## Contracts
+
+| Contract | Role |
+|---|---|
+| `LatchkeyVault` | One person's vault (minimal clone). Owner: `checkIn`, `withdraw`, `setHeir`, `setTimes`, `setGuardians`, `setOwnerInbox`. Anyone: `poke` (the circuit decides: start grace / trip / revert `NothingToDo`). Guardians: `confirm` (only during a grace period). Heir: `claim`. Safety valve: `tripWithoutCircuit` only if the processor stops answering, 30 days after the latch could have tripped. |
+| `LatchkeyFactory` | No owner. Creates vaults, wired to the latch circuit and the herald; fixed setup fee and claim fee (capped at 1%). Lists vaults by owner, heir and guardian. |
+| `LatchkeyHerald` | Holds the latch circuit NFT and speaks over TapeSend as its container. Only factory vaults can make it speak, and only fixed messages composed from vault state. Its admin can only name a DeWEB site operator (30 days at a time, the SiteRegistry maximum) and can renounce. It holds no funds, and vaults never depend on it (`try/catch`, with gas reserved so wallet estimates can't starve it). |
 
 ## Deployments
 
 | | X Layer mainnet (196) |
 |---|---|
 | Processor | OrderGuard `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355` |
-| Circuit ID | _filled after tape-out_ (`contracts/deployments/xlayer.json`) |
-| LatchkeyFactory | _filled after deploy_ |
-| DeWEB | _filled after publish_ |
+| MAJ3 circuit ID | _filled after tape-out_ (`contracts/deployments/xlayer.json`) |
+| Latch circuit ID | _filled after tape-out_ |
+| LatchkeyFactory / LatchkeyHerald | _filled after deploy_ |
+| DeWEB | _`<id>.2.272.tape` after publish_ |
 
 ## Repository
 
 ```
-circuit/      TAP-02 netlist builder, evaluator and exhaustive check (node circuit/latch.mjs)
-contracts/    LatchkeyVault, LatchkeyFactory, fork tests against the real processor, deploy + DeWEB publish scripts
-app/          Vite + Preact + viem, mobile first; builds to one self-contained index.html
-DESIGN.md     design direction (Refero: Mercury + Linear)
+circuit/            netlist builder (NAND, LATCH, REF), TAP-02 evaluator, exhaustive check
+contracts/          LatchkeyVault, LatchkeyFactory, LatchkeyHerald; fork tests against the real TapeOut contracts
+  scripts/          deploy.js, publish-deweb.js, rehearse.js, lib/tapeout.js, research/ (container probe)
+app/                Vite + Preact + viem, mobile first; builds to one self-contained index.html
+DESIGN.md           design direction (Refero: Mercury + Linear)
+SUBMISSION.md       form answers and demo script
 ```
 
 ## Run it
 
 ```bash
-node circuit/latch.mjs                          # build + verify the netlist (8/8 rows, never clears)
+node circuit/latch.mjs                          # build + verify both netlists (256/256 rows)
 
 cd contracts && npm i
-npm run test:fork                               # taped out on an X Layer fork; full journey on the real processor
+npm run test:fork                               # X Layer fork: tape-out, REF, Opener, TapeSend hub, SiteRegistry
 
-# local rehearsal: a fork of X Layer with Latchkey deployed
+# local rehearsal on a fork of X Layer
 FORK=1 npx hardhat node                         # terminal 1
 npx hardhat run scripts/deploy.js --network localhost
-cd ../app && npm i && npm run dev               # http://localhost:5173 (fork mode, test people, clock skip)
+npx hardhat run scripts/rehearse.js --network localhost   # optional: a vault that went through the whole journey
+cd ../app && npm i && npm run dev               # http://localhost:5173 (fork mode: test people, clock skip)
 ```
 
-Mainnet (needs about 0.1 OKB in a fresh deployer wallet):
+Mainnet (about 0.09 OKB in a fresh deployer wallet; key in `contracts/.env`, see `.env.example`):
 
 ```bash
-cd contracts
-DEPLOYER_KEY=0x... npx hardhat run scripts/deploy.js --network xlayer         # tape out + factory
-cd ../app && LK_ONCHAIN=1 npx vite build                                         # on-chain build
-cd ../contracts && DEPLOYER_KEY=0x... npx hardhat run scripts/publish-deweb.js --network xlayer
+cd contracts && npx hardhat run scripts/deploy.js --network xlayer         # tape-outs, container, name, herald, factory
+cd ../app && LK_ONCHAIN=1 npx vite build && node scripts/check-onchain.mjs  # on-chain build, purity check
+cd ../contracts && npx hardhat run scripts/publish-deweb.js --network xlayer
 ```
 
-## Tests
+## Tests (fork of X Layer mainnet, real TapeOut contracts)
 
-- `circuit`: all 8 (q, expired, alive) rows match the specification. From q = 1, no input clears the latch.
-- `contracts` (fork of X Layer mainnet, real OrderGuard processor): the stored netlist equals ours; the processor's `step()` matches the truth table; the full journey (create, fund, check in, rescue after the deadline, trip, irreversibility, heir claim with fee split); owner controls; no re-initialisation; the safety valve with a dead processor; the factory refuses a wrong circuit and fees above 1%.
-- DeWEB publish rehearsed on a fork: 466,551 bytes in 20 chunks, read back with a matching SHA-256.
+- Both netlists are stored as built. The latch's gate count includes MAJ3's gates through REF.
+- The real processor's `step()` matches the specification on all 256 (state, input) rows.
+- Journey: grace period starts (TapeSend notice to Latchkey's feed), owner check-in cancels it, grace starts again, one guardian is not enough, two trip the latch (TapeSend notice to the heir's inbox, with the `tape://` link), irreversibility, heir claim with the fee split. Sent with **wallet-estimated gas**, so the notices are proven to go out in real conditions.
+- Without guardians, the latch trips only after the grace period.
+- Owner controls and validation; herald access rules; the herald as holder can name a SiteRegistry operator who uploads a file; no re-initialisation; the factory refuses a wrong circuit.
+- Safety valve: with the processor's code replaced by a reverting stub, the owner can still withdraw and the heir is never locked out.
+- DeWEB publish rehearsed on a fork: chunks read back with a matching SHA-256.
 
-Gas on X Layer at 0.02 gwei: create a vault about 425k gas, check-in 133k, trip 114k, claim 112k. Each costs well under a cent.
+Gas on X Layer (0.02 gwei): create about 617k, check-in about 227k, poke with a TapeSend notice about 460k, confirm about 50k, claim about 110k. Each is well under a cent.
 
-## Fees (fixed at deploy, no admin can change them)
+## Fees (fixed at deploy; nobody can change them)
 
 - Setup: 0.001 OKB per vault.
 - Claim: 0.2% of what the heir claims (capped at 1% in the contract).
@@ -77,9 +93,9 @@ Gas on X Layer at 0.02 gwei: create a vault about 425k gas, check-in 133k, trip 
 ## Security notes
 
 Unaudited hackathon code. Known trade-offs:
-- Anyone may call `trip()` after the deadline. That is the point: no keeper or company is needed.
-- A check-in that lands before the trip always wins, even after the deadline.
-- The heir list in the factory (`vaultsForHeir`) records the heir at creation; the vault's own `heir()` is authoritative.
-- TapeOut's processor is a beacon proxy whose implementation can still change until TapeOut seals its factory. If the processor ever stops answering (the call fails, as opposed to answering 0), check-ins and trips revert with `CircuitFailed`, but the owner can still `withdraw`, and 30 days after the deadline anyone can call `tripWithoutCircuit()` so the heir is never locked out. Tested on the fork by replacing the processor's code with a reverting stub.
+- Anyone may `poke()`. That is the point: no keeper or company is needed. The circuit decides.
+- A check-in before the trip always wins. Guardians can only shorten a grace period that has already started.
+- TapeOut's processor is a beacon proxy (the circuits are frozen per the TapeSend README, 2026-10-22). If it ever stopped answering, the safety valve above applies.
+- TapeSend messages are public (metadata and content). They contain vault and wallet addresses, never amounts.
 
 MIT licensed.
